@@ -1,0 +1,2490 @@
+<title>Dakscan-voorbeeld</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: slim preview bar on top, then the customer share page as one centered column with the 16:9 viewer as its anchor. */
+:root {
+  --bg: #F2F5F1;
+  --surface: #FFFFFF;
+  --surface-2: #E9EEE8;
+  --ink: #15201A;
+  --muted: #56635B;
+  --line: #D6DED7;
+  --voor: #C22F28;
+  --na: #1A7642;
+  --voor-soft: #F9E4E2;
+  --na-soft: #DCF0E3;
+  --on-voor: #FFFFFF;
+  --on-na: #FFFFFF;
+  --bar-bg: #15201A;
+  --bar-ink: #EAF0EB;
+  --bar-muted: #9CAAA1;
+  --focus: #2E6BD6;
+  --shadow: 0 1px 2px rgba(21, 32, 26, .06), 0 8px 24px rgba(21, 32, 26, .07);
+  /* Video overlay colours stay fixed in both themes, like a rendered MP4 would. */
+  --v-card: #F3F6F1;
+  --v-ink: #12201A;
+  --v-muted: #55645B;
+  --v-voor: #D3342C;
+  --v-na: #17844A;
+  --v-on: #FFFFFF;
+  --v-title-voor: #FF6B61;
+  --v-title-na: #5BE08F;
+  --v-scrim: rgba(10, 18, 14, .55);
+  --sky-top: #9DC0E0;
+  --sky-horizon: #DDE8EE;
+  --font-display: "Familjen Grotesk", "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1411;
+    --surface: #161E1A;
+    --surface-2: #1D2722;
+    --ink: #E6EDE8;
+    --muted: #9AA89F;
+    --line: #2B3631;
+    --voor: #EF5B51;
+    --na: #3DBB72;
+    --voor-soft: #3A1E1C;
+    --na-soft: #15301F;
+    --on-voor: #1A0806;
+    --on-na: #04140A;
+    --bar-bg: #080C0A;
+    --bar-ink: #E6EDE8;
+    --bar-muted: #8D9A92;
+    --focus: #7EA8FF;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1411;
+  --surface: #161E1A;
+  --surface-2: #1D2722;
+  --ink: #E6EDE8;
+  --muted: #9AA89F;
+  --line: #2B3631;
+  --voor: #EF5B51;
+  --na: #3DBB72;
+  --voor-soft: #3A1E1C;
+  --na-soft: #15301F;
+  --on-voor: #1A0806;
+  --on-na: #04140A;
+  --bar-bg: #080C0A;
+  --bar-ink: #E6EDE8;
+  --bar-muted: #8D9A92;
+  --focus: #7EA8FF;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.12; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Preview chrome ---------- */
+.pv-bar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 20;
+  background: var(--bar-bg);
+  color: var(--bar-ink);
+  padding-inline: 16px;
+}
+.pv-bar__in {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  padding-block: 10px;
+}
+.pv-brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.95rem; }
+.pv-chip {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--bar-muted);
+  color: var(--bar-muted);
+}
+.pv-tabs { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; max-width: 100%; }
+.pv-tab {
+  background: transparent;
+  border: 0;
+  color: var(--bar-muted);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+.pv-tab:hover { color: var(--bar-ink); }
+.pv-tab[aria-selected="true"] { color: var(--bar-ink); background: rgba(255, 255, 255, .1); }
+.pv-tab:focus-visible { outline-offset: -3px; }
+@media (max-width: 400px) { .pv-tab { padding-inline: 10px; } }
+
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 16px; }
+.tab { padding-block: 28px 40px; }
+
+/* ---------- Customer page ---------- */
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.brand__id { display: flex; align-items: center; gap: 12px; }
+.logo { width: 44px; height: 44px; color: var(--ink); flex: none; }
+.brand__name { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; line-height: 1.1; }
+.brand__sub { color: var(--muted); font-size: 0.85rem; }
+.brand__phone { font-family: var(--font-mono); font-size: 0.9rem; color: var(--muted); }
+
+.intro { display: grid; gap: 10px; padding-block: 26px 22px; }
+.intro h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; }
+.intro p { color: var(--muted); max-width: 60ch; font-size: 1.05rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); letter-spacing: 0.02em; }
+.meta b { color: var(--ink); font-weight: 500; }
+
+.pv-note { margin: 0 0 12px; padding: 9px 13px; border-radius: 10px; background: var(--surface-2); color: var(--muted); font-size: 0.9rem; max-width: 70ch; }
+.pv-note b { color: var(--ink); }
+.modes { display: inline-flex; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: 12px; margin-bottom: 12px; }
+.mode {
+  border: 0;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+}
+.mode[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+.player { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.viewer {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-horizon) 58%, var(--sky-horizon) 100%);
+  container-type: inline-size;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.viewer canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+.viewer.is-explore canvas { cursor: grab; touch-action: none; }
+.viewer.is-explore canvas:active { cursor: grabbing; }
+
+.ov { position: absolute; pointer-events: none; }
+.ov-badge {
+  top: 4cqw; left: 4cqw;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: max(11px, 1.7cqw);
+  letter-spacing: 0.14em;
+  color: #fff;
+  padding: 0.35em 0.8em;
+  border-radius: 0.4em;
+  opacity: 0;
+}
+.ov-badge[data-phase="voor"] { background: var(--v-voor); }
+.ov-badge[data-phase="na"] { background: var(--v-na); }
+.ov-mark {
+  right: 3.2cqw; bottom: 3cqw;
+  display: flex; align-items: center; gap: 0.5em;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: max(10px, 1.45cqw);
+  color: #fff;
+  opacity: 0;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .45);
+}
+.ov-mark svg { width: 2.2em; height: 2.2em; color: #fff; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .4)); }
+.ov-lower {
+  left: 4cqw; bottom: 4.5cqw;
+  display: flex; align-items: stretch;
+  max-width: 70%;
+  opacity: 0;
+  border-radius: 0.5em;
+  overflow: hidden;
+  font-size: max(12px, 2.3cqw);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+}
+.ov-lower__num {
+  display: grid; place-items: center;
+  min-width: 2.4em;
+  font-family: var(--font-display); font-weight: 700;
+  color: #fff;
+  font-size: 1.15em;
+}
+.ov-lower[data-phase="voor"] .ov-lower__num { background: var(--v-voor); }
+.ov-lower[data-phase="na"] .ov-lower__num { background: var(--v-na); border-radius: 0; }
+.ov-lower__txt { background: var(--v-card); color: var(--v-ink); padding: 0.45em 0.9em 0.5em; display: grid; }
+.ov-lower__kicker { font-family: var(--font-mono); font-size: max(9px, 0.55em); letter-spacing: 0.1em; text-transform: uppercase; color: var(--v-muted); }
+.ov-lower__label { font-family: var(--font-display); font-weight: 700; line-height: 1.15; }
+.ov-title {
+  inset: 0;
+  display: grid; align-content: center; justify-items: start;
+  padding-left: 7cqw;
+  background: linear-gradient(90deg, rgba(10, 18, 14, .72), rgba(10, 18, 14, .45) 45%, rgba(10, 18, 14, 0) 75%);
+  opacity: 0;
+  color: var(--v-on);
+}
+.ov-title strong { font-family: var(--font-display); font-weight: 700; font-size: 11cqw; letter-spacing: 0.06em; line-height: 1; }
+.ov-title[data-phase="voor"] strong { color: var(--v-title-voor); }
+.ov-title[data-phase="na"] strong { color: var(--v-title-na); }
+.ov-title span { font-size: max(11px, 2.1cqw); font-weight: 600; margin-top: 1cqw; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
+.ov-wipe {
+  top: 0; bottom: 0; left: -20%; width: 140%;
+  background: linear-gradient(90deg, var(--v-na) 0 8%, var(--v-ink) 8% 92%, var(--v-voor) 92% 100%);
+  transform: translateX(-120%) skewX(-14deg);
+  visibility: hidden;
+}
+.ov-card {
+  inset: 0;
+  background: var(--v-card);
+  color: var(--v-ink);
+  display: grid; align-content: center; justify-items: center; text-align: center;
+  gap: 1.4cqw;
+  opacity: 0;
+}
+.ov-card svg { width: 9cqw; height: 9cqw; color: var(--v-ink); }
+.ov-card .c-kicker { font-family: var(--font-mono); font-size: max(9px, 1.5cqw); letter-spacing: 0.14em; text-transform: uppercase; color: var(--v-muted); }
+.ov-card .c-title { font-family: var(--font-display); font-weight: 700; font-size: 5.4cqw; line-height: 1.05; }
+.ov-card .c-sub { font-size: max(11px, 2cqw); color: var(--v-muted); }
+.ov-card .c-split { width: 16cqw; height: 0.5cqw; border-radius: 1cqw; background: linear-gradient(90deg, var(--v-voor) 0 50%, var(--v-na) 50% 100%); }
+.ov-card .c-contact { font-family: var(--font-mono); font-size: max(11px, 1.9cqw); color: var(--v-ink); }
+
+.ov-poster, .ov-end, .ov-fallback {
+  inset: 0;
+  pointer-events: auto;
+  display: grid; place-items: center; align-content: center;
+  gap: 12px;
+  background: radial-gradient(ellipse at center, rgba(10, 18, 14, 0) 35%, rgba(10, 18, 14, .32));
+  color: var(--v-on);
+  text-align: center;
+  padding: 16px;
+}
+.big-play {
+  display: inline-flex; align-items: center; gap: 12px;
+  border: 0; cursor: pointer;
+  background: var(--v-card); color: var(--v-ink);
+  padding: 12px 22px 12px 14px;
+  border-radius: 999px;
+  font-weight: 700; font-size: clamp(0.95rem, 2.2cqw, 1.2rem);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+}
+.big-play__icon { width: 2.2em; height: 2.2em; border-radius: 50%; background: var(--v-na); color: var(--v-on); display: grid; place-items: center; }
+.big-play__icon svg { width: 0.9em; height: 0.9em; margin-left: 0.12em; }
+.big-play__dur { font-family: var(--font-mono); font-weight: 500; font-size: 0.78em; color: var(--v-muted); margin-left: 4px; }
+.ov-end { gap: 1.4cqw; background: var(--v-card); color: var(--v-ink); }
+.ov-end svg.end-logo { width: 7cqw; height: 7cqw; color: var(--v-ink); }
+.ov-end .ghost-btn { background: transparent; color: var(--v-ink); border-color: var(--v-ink); }
+.ov-end__row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.ghost-btn {
+  border: 1.5px solid rgba(255, 255, 255, .85); background: rgba(10, 18, 14, .35); color: var(--v-on);
+  padding: 10px 18px; border-radius: 999px; font-weight: 700; cursor: pointer;
+}
+.ov-fallback { background: var(--surface-2); color: var(--ink); }
+.ov-fallback p { max-width: 42ch; }
+.ov-hint {
+  left: 50%; bottom: 14px; transform: translateX(-50%);
+  background: rgba(10, 18, 14, .62); color: #fff;
+  font-size: 0.82rem; padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  transition: opacity .4s;
+}
+
+/* Pins */
+.pins { position: absolute; inset: 0; pointer-events: none; }
+.pin { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; transition: opacity .2s; }
+.pin__dot { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }
+.pin__stem { position: absolute; left: -1px; bottom: 2px; width: 2px; height: 14px; background: #fff; box-shadow: 0 0 2px rgba(0, 0, 0, .5); }
+.pin__btn {
+  position: absolute; left: -15px; bottom: 15px;
+  display: flex; align-items: center; gap: 0;
+  border: 0; padding: 0; background: transparent; cursor: pointer;
+  pointer-events: auto;
+}
+.pin__num {
+  width: 30px; height: 30px; flex: none;
+  display: grid; place-items: center;
+  color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  border: 2px solid #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .35);
+}
+.pin__label {
+  margin-left: 6px;
+  background: var(--v-card); color: var(--v-ink);
+  font-size: 13px; font-weight: 600; line-height: 1.2;
+  padding: 5px 9px; border-radius: 7px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .25);
+  white-space: nowrap;
+}
+.pin--voor .pin__num { background: var(--v-voor); border-radius: 50%; }
+.pin--voor .pin__dot { background: var(--v-voor); }
+.pin--na .pin__num { background: var(--v-na); border-radius: 7px; }
+.pin--na .pin__dot { background: var(--v-na); }
+.viewer.is-explore .pin.is-occluded { opacity: 0; }
+.viewer.is-explore .pin.is-occluded .pin__btn { pointer-events: none; }
+.viewer.is-explore .pin.is-occluded .pin__label,
+.pin.no-label .pin__label { display: none; }
+.pin.label-left .pin__btn { flex-direction: row-reverse; left: auto; right: -15px; }
+.pin.label-left .pin__label { margin-left: 0; margin-right: 6px; }
+.viewer.is-video .pin.is-occluded { opacity: 0; }
+.viewer.is-video .pin__label { display: none; }
+.viewer.is-video .pin__btn { pointer-events: none; }
+.viewer.is-video .pin { opacity: .9; }
+.viewer.is-video .pin.is-active { opacity: 1; }
+.pin.is-active .pin__num { animation: pulse 1.4s ease-out infinite; }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, .85), 0 3px 10px rgba(0, 0, 0, .35); }
+  100% { box-shadow: 0 0 0 14px rgba(255, 255, 255, 0), 0 3px 10px rgba(0, 0, 0, .35); }
+}
+
+/* Annotation layer: measurement labels and note cards (explore mode) */
+.anno { position: absolute; inset: 0; pointer-events: none; }
+.mlabel {
+  position: absolute; left: 0; top: 0;
+  background: #0E1B30; color: #fff;
+  font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap;
+  padding: 6px 9px; border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+  border-left: 3px solid var(--mk, #35D0DC);
+}
+.mlabel--ridge { --mk: #FFD43B; }
+.mlabel--eave { --mk: #4D8DFF; }
+.mlabel--angle, .mlabel--area { --mk: #35D0DC; }
+.mlabel--key { --mk: #FF9A3C; background: #1B1206; }
+.card {
+  position: absolute; left: 0; top: 0;
+  width: 196px;
+  background: #fff; color: #13201A;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .28), 0 1px 3px rgba(0, 0, 0, .2);
+  padding: 9px 9px 10px;
+  pointer-events: auto; cursor: pointer;
+  text-align: left; border: 0; font: inherit;
+}
+.card::after {
+  content: ""; position: absolute; bottom: -6px; left: var(--px, 50%);
+  width: 12px; height: 12px; margin-left: -6px; background: #fff; transform: rotate(45deg);
+  box-shadow: 3px 3px 4px rgba(0, 0, 0, .08);
+}
+.card__head { display: flex; align-items: center; gap: 7px; font-family: var(--font-display); font-weight: 700; font-size: 13.5px; line-height: 1.2; margin-bottom: 7px; }
+.card__dot { width: 18px; height: 18px; flex: none; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700; }
+.card--voor .card__dot { background: var(--v-voor); border-radius: 50%; }
+.card--na .card__dot { background: var(--v-na); border-radius: 5px; }
+.card__img { display: block; width: 100%; aspect-ratio: 1.9; object-fit: cover; border-radius: 7px; background: #DDE6EC; }
+.card__note { margin-top: 7px; font-size: 11.5px; line-height: 1.35; color: #56645B; }
+.cards { position: absolute; inset: 0; pointer-events: none; }
+.viewer.is-video .anno, .viewer.is-video .cards { display: none; }
+.card.is-below::after { bottom: auto; top: -6px; box-shadow: -2px -2px 4px rgba(0, 0, 0, .06); }
+.card.is-docked { width: auto; max-width: min(340px, calc(100% - 16px)); display: grid; grid-template-columns: 92px minmax(0, 1fr); column-gap: 10px; align-items: center; padding: 7px; }
+.card.is-docked::after { display: none; }
+.card.is-docked .card__img { grid-row: 1 / span 2; grid-column: 1; }
+.card.is-docked .card__head { grid-column: 2; margin: 0; }
+.card.is-docked .card__note { display: block; grid-column: 2; margin-top: 3px; font-size: 11px; }
+.pin.has-card .pin__label { display: none; }
+.toggles { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.tgl {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  padding: 7px 11px; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: 0.88rem;
+}
+.tgl::before { content: ""; width: 9px; height: 9px; border-radius: 3px; border: 2px solid currentColor; }
+.tgl[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
+.tgl[aria-pressed="true"]::before { background: currentColor; }
+.phase-tag { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+@media (max-width: 560px) {
+  .card { width: 168px; padding: 7px 7px 8px; }
+  .card__note { display: none; }
+  .mlabel { font-size: 11px; padding: 5px 7px; }
+}
+
+/* Player strip */
+.strip { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.icon-btn {
+  width: 40px; height: 40px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); cursor: pointer;
+}
+.icon-btn svg { width: 16px; height: 16px; }
+.time { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.scrub { position: relative; flex: 1 1 220px; min-width: 0; display: grid; gap: 4px; padding-top: 4px; }
+.track { position: relative; height: 8px; border-radius: 99px; overflow: hidden; }
+.track__chapters { position: absolute; inset: 0; }
+.track__rest { position: absolute; top: 0; bottom: 0; right: 0; background: var(--surface); opacity: .62; }
+.scrub input[type="range"] {
+  position: absolute; left: 0; right: 0; top: -11px; width: 100%; height: 40px; margin: 0;
+  -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
+}
+.scrub input[type="range"]::-webkit-slider-runnable-track { height: 40px; background: transparent; }
+.scrub input[type="range"]::-moz-range-track { height: 40px; background: transparent; }
+.scrub input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: 12px; border-radius: 50%;
+  background: var(--ink); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--line);
+}
+.scrub input[type="range"]::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 3px solid var(--surface);
+}
+.chapters { position: relative; height: 18px; font-size: 0.72rem; color: var(--muted); }
+.chapter { position: absolute; top: -11px; min-width: 40px; min-height: 40px; margin-left: -6px; padding: 11px 6px 0; text-align: left; background: none; border: 0; cursor: pointer; color: inherit; font-weight: 600; white-space: nowrap; }
+.chapter:hover { color: var(--ink); }
+
+.seg { display: inline-flex; padding: 3px; gap: 3px; border-radius: 10px; background: var(--surface-2); }
+.seg button {
+  border: 0; cursor: pointer; padding: 7px 18px; border-radius: 8px; font-weight: 700;
+  background: transparent; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.seg button[data-scene="voor"][aria-pressed="true"] { background: var(--voor); color: var(--on-voor); }
+.seg button[data-scene="na"][aria-pressed="true"] { background: var(--na); color: var(--on-na); }
+.strip__hint { color: var(--muted); font-size: 0.85rem; flex: 1 1 180px; min-width: 0; }
+.text-btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+
+/* Findings */
+.summary { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 26px 14px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; }
+.pill--voor { background: var(--voor-soft); color: var(--voor); }
+.pill--na { background: var(--na-soft); color: var(--na); }
+.findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px; }
+.findings h2 { font-size: 1.15rem; margin-bottom: 10px; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.item {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; cursor: pointer; text-align: left;
+}
+.item:hover { border-color: var(--muted); }
+.badge {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700;
+}
+.badge--voor { background: var(--voor); color: var(--on-voor); border-radius: 50%; }
+.badge--na { background: var(--na); color: var(--on-na); border-radius: 7px; }
+.item__label { flex: 1; min-width: 0; font-weight: 600; }
+.item__go { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+
+.contact {
+  margin-top: 34px; padding: 22px; border-radius: var(--radius);
+  background: var(--surface-2);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 28px;
+}
+.contact h2 { font-size: 1.3rem; }
+.contact p { color: var(--muted); }
+.contact__lines { display: grid; gap: 2px; font-family: var(--font-mono); font-size: 0.92rem; }
+.privacy { margin-top: 18px; font-size: 0.85rem; color: var(--muted); max-width: 70ch; }
+
+/* ---------- Mail tab ---------- */
+.lead { color: var(--muted); max-width: 62ch; font-size: 1.05rem; margin-top: 10px; }
+.mail-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; margin-top: 26px; align-items: start; }
+@media (max-width: 820px) { .mail-grid { grid-template-columns: minmax(0, 1fr); } }
+.mail { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.mail__head { padding: 16px 20px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; font-size: 0.9rem; }
+.mail__head div { display: flex; gap: 10px; min-width: 0; }
+.mail__head dt, .mail__k { color: var(--muted); width: 82px; flex: none; }
+.mail__v { min-width: 0; overflow-wrap: anywhere; }
+.mail__subject { font-weight: 700; }
+@media (max-width: 560px) { .mail__head div { flex-direction: column; gap: 0; } .mail__k { width: auto; font-size: 0.8rem; } }
+.mail__body { padding: 22px 20px 26px; display: grid; gap: 14px; }
+.mail__body p { max-width: 58ch; }
+.mail__thumb {
+  position: relative; display: block; width: 100%; max-width: 420px; aspect-ratio: 16 / 9;
+  border-radius: 10px; overflow: hidden; border: 0; padding: 0; cursor: pointer;
+  background: linear-gradient(180deg, var(--sky-top), var(--sky-horizon));
+}
+.mail__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mail__thumb .play-mini {
+  position: absolute; inset: 0; margin: auto; width: 54px; height: 54px; border-radius: 50%;
+  background: rgba(255, 255, 255, .92); color: var(--v-ink); display: grid; place-items: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+}
+.mail__thumb .play-mini svg { width: 18px; height: 18px; margin-left: 3px; }
+.mail__thumb .dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0, 0, 0, .65); color: #fff; font-family: var(--font-mono); font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; }
+.cta {
+  justify-self: start;
+  background: var(--na); color: var(--on-na); border: 0; cursor: pointer;
+  padding: 13px 22px; border-radius: 8px; font-weight: 700; font-size: 1rem;
+}
+.attach { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 0.85rem; justify-self: start; }
+.attach b { font-family: var(--font-mono); font-weight: 500; }
+.attach span { color: var(--muted); }
+.notes h2 { font-size: 1.15rem; margin-bottom: 12px; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.checks li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; }
+.checks svg { width: 20px; height: 20px; color: var(--na); margin-top: 2px; }
+
+/* ---------- How it works tab ---------- */
+.steps { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 0; counter-reset: step; }
+.step { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; position: relative; padding-bottom: 22px; }
+.step::before {
+  counter-increment: step; content: counter(step);
+  width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.1rem;
+  background: var(--surface); border: 2px solid var(--line);
+  position: relative; z-index: 1;
+}
+.step:not(:last-child)::after { content: ""; position: absolute; left: 21px; top: 44px; bottom: 0; width: 2px; background: var(--line); }
+.step[data-tone="voor"]::before { border-color: var(--voor); color: var(--voor); }
+.step[data-tone="na"]::before { border-color: var(--na); color: var(--na); }
+.step h3 { font-size: 1.12rem; padding-top: 9px; }
+.step p { color: var(--muted); margin-top: 4px; max-width: 64ch; }
+.who { display: inline-block; margin-left: 8px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted); vertical-align: 2px; }
+.goal { margin-top: 6px; padding: 14px 18px; border-radius: 12px; background: var(--na-soft); color: var(--ink); max-width: 70ch; }
+.goal b { color: var(--na); }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px; margin-top: 34px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.box h2 { font-size: 1.15rem; margin-bottom: 12px; }
+.box ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; color: var(--muted); }
+.box li::marker { color: var(--line); }
+.phases { margin-top: 34px; }
+.phases > h2 { font-size: 1.35rem; margin-bottom: 14px; }
+.phase { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); }
+@media (max-width: 560px) { .phase { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+.phase__tag { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); padding-top: 3px; }
+.phase__tag b { display: block; color: var(--ink); font-family: var(--font-display); font-size: 1.05rem; }
+.phase h3 { font-size: 1.05rem; }
+.phase p { color: var(--muted); margin-top: 3px; max-width: 66ch; }
+.status { display: inline-block; margin-left: 8px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; vertical-align: 2px; }
+.status--now { background: var(--na-soft); color: var(--na); }
+.status--later { background: var(--surface-2); color: var(--muted); }
+
+.foot { border-top: 1px solid var(--line); padding-block: 18px 30px; color: var(--muted); font-size: 0.85rem; }
+
+@media (max-width: 560px) {
+  .tab { padding-block: 20px 32px; }
+  .strip { padding: 10px; gap: 10px; }
+  .pin__num { width: 26px; height: 26px; font-size: 13px; }
+  .pin__btn::before { content: ""; position: absolute; inset: -7px; }
+  .pin__btn { left: -13px; }
+  .pin__label { font-size: 12px; padding: 4px 7px; }
+  .ov-lower { max-width: 86%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pin.is-active .pin__num { animation: none; }
+  .ov-hint { transition: none; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 48 48">
+    <path d="M6 25.5 24 9" fill="none" stroke-width="6.5" stroke-linecap="round" style="stroke: var(--v-voor)"/>
+    <path d="M24 9 42 25.5" fill="none" stroke-width="6.5" stroke-linecap="round" style="stroke: var(--v-na)"/>
+    <path d="M13.5 26v11.5a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V26" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-play" viewBox="0 0 16 16"><path d="M3.5 1.8v12.4a.8.8 0 0 0 1.2.7l10-6.2a.8.8 0 0 0 0-1.4l-10-6.2a.8.8 0 0 0-1.2.7Z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 16 16"><rect x="3" y="2" width="3.6" height="12" rx="1" fill="currentColor"/><rect x="9.4" y="2" width="3.6" height="12" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-check" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="currentColor" opacity=".15"/><path d="m6 10.3 2.6 2.6L14.2 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<header class="pv-bar">
+  <div class="pv-bar__in">
+    <div class="pv-brand"><span>Dakscansysteem</span><span class="pv-chip">Voorbeeld</span></div>
+    <nav class="pv-tabs" role="tablist" aria-label="Onderdelen van het voorbeeld">
+      <button class="pv-tab" role="tab" id="t-klant" aria-controls="tab-klant" aria-selected="true" data-tab="klant">Klantpagina</button>
+      <button class="pv-tab" role="tab" id="t-mail" aria-controls="tab-mail" aria-selected="false" data-tab="mail">Factuurmail</button>
+      <button class="pv-tab" role="tab" id="t-werkwijze" aria-controls="tab-werkwijze" aria-selected="false" data-tab="werkwijze">Zo werkt het</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ================= Klantpagina ================= -->
+  <section class="tab wrap" id="tab-klant" role="tabpanel" aria-labelledby="t-klant">
+    <div class="brand">
+      <div class="brand__id">
+        <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+        <div>
+          <div class="brand__name">Bedrijfsnaam</div>
+          <div class="brand__sub">Ongediertebestrijding</div>
+        </div>
+      </div>
+      <div class="brand__phone">040 000 00 00</div>
+    </div>
+
+    <div class="intro">
+      <h1>Uw woning in Eindhoven</h1>
+      <p>Bekijk hoe uw dak en tuin eruitzagen vóór en na onze werkzaamheden. We hebben uw woning twee keer met een drone gescand: bij de inspectie en na het werk.</p>
+      <div class="meta">
+        <span>Inspectie <b>29 sep 2026</b></span>
+        <span>Werkzaamheden <b>6 okt 2026</b></span>
+        <span>Gescand met een drone</span>
+      </div>
+    </div>
+
+    <p class="pv-note"><b>Let op, voorbeeld:</b> dit huis en de tuin zijn met de computer nagemaakt. In het echte systeem ziet de klant de dronescan van de eigen woning, die eruitziet als een 3D-foto.</p>
+    <div class="modes" role="group" aria-label="Weergave">
+      <button class="mode" type="button" id="m-video" aria-pressed="true" data-mode="video">Video</button>
+      <button class="mode" type="button" id="m-explore" aria-pressed="false" data-mode="explore">3D-model</button>
+    </div>
+
+    <div class="player" id="player">
+      <div class="viewer is-video" id="viewer">
+        <div class="anno" id="anno"></div>
+        <div class="pins" id="pins"></div>
+        <div class="cards" id="cards"></div>
+        <div class="ov ov-badge" id="ov-badge"></div>
+        <div class="ov ov-mark" id="ov-mark"><svg aria-hidden="true"><use href="#logo"/></svg><span>Bedrijfsnaam</span></div>
+        <div class="ov ov-lower" id="ov-lower">
+          <span class="ov-lower__num" id="ov-lower-num"></span>
+          <span class="ov-lower__txt"><span class="ov-lower__kicker" id="ov-lower-kicker"></span><span class="ov-lower__label" id="ov-lower-label"></span></span>
+        </div>
+        <div class="ov ov-title" id="ov-title"><strong id="ov-title-big"></strong><span id="ov-title-sub"></span></div>
+        <div class="ov ov-wipe" id="ov-wipe"></div>
+        <div class="ov ov-card" id="ov-intro" style="opacity:1">
+          <svg aria-hidden="true"><use href="#logo"/></svg>
+          <div class="c-kicker">Bedrijfsnaam</div>
+          <div class="c-title">Uw woning in Eindhoven</div>
+          <div class="c-split"></div>
+          <div class="c-sub">6 oktober 2026</div>
+        </div>
+        <div class="ov ov-card" id="ov-outro">
+          <svg aria-hidden="true"><use href="#logo"/></svg>
+          <div class="c-title">Bedrijfsnaam</div>
+          <div class="c-sub">Ongediertebestrijding</div>
+          <div class="c-split"></div>
+          <div class="c-contact">040 000 00 00 · bedrijfsnaam.nl</div>
+        </div>
+        <div class="ov ov-poster" id="ov-poster">
+          <button class="big-play" id="btn-poster" type="button">
+            <span class="big-play__icon"><svg aria-hidden="true"><use href="#i-play"/></svg></span>
+            Bekijk de video <span class="big-play__dur" id="poster-dur">0:53</span>
+          </button>
+        </div>
+        <div class="ov ov-end" id="ov-end" hidden>
+          <svg class="end-logo" aria-hidden="true"><use href="#logo"/></svg>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:max(18px,4.4cqw);line-height:1.05">Bedrijfsnaam</div>
+          <div class="c-contact" style="font-family:var(--font-mono);font-size:max(11px,1.9cqw)">040 000 00 00 · bedrijfsnaam.nl</div>
+          <div class="ov-end__row">
+            <button class="big-play" id="btn-replay" type="button">
+              <span class="big-play__icon"><svg aria-hidden="true"><use href="#i-play"/></svg></span>
+              Opnieuw bekijken
+            </button>
+            <button class="ghost-btn" id="btn-end-explore" type="button">Bekijk in 3D</button>
+          </div>
+        </div>
+        <div class="ov ov-hint" id="ov-hint" hidden>Sleep om te draaien, klik en scrol om te zoomen</div>
+        <div class="ov ov-fallback" id="ov-fallback" hidden>
+          <p><strong>Het 3D-voorbeeld kan op dit apparaat niet laden.</strong><br>Open de pagina in een recente versie van Chrome, Safari, Edge of Firefox.</p>
+        </div>
+      </div>
+
+      <div class="strip" id="strip-video">
+        <button class="icon-btn" id="btn-play" type="button" aria-label="Afspelen"><svg aria-hidden="true"><use href="#i-play" id="play-icon"/></svg></button>
+        <span class="time" id="time">0:00 / 0:53</span>
+        <div class="scrub">
+          <div class="track" aria-hidden="true"><div class="track__chapters" id="track-chapters"></div><div class="track__rest" id="track-rest"></div></div>
+          <input type="range" id="scrubber" min="0" max="5300" step="1" value="0" aria-label="Tijdlijn van de video">
+          <div class="chapters" id="chapters"></div>
+        </div>
+      </div>
+      <div class="strip" id="strip-explore" hidden>
+        <div class="seg" role="group" aria-label="Kies de scan">
+          <button type="button" data-scene="voor" aria-pressed="true">Voor</button>
+          <button type="button" data-scene="na" aria-pressed="false">Na</button>
+        </div>
+        <div class="toggles" role="group" aria-label="Wat er op het model staat">
+          <button type="button" class="tgl" id="tgl-notes" aria-pressed="true">Notities <span class="phase-tag">fase 3</span></button>
+          <button type="button" class="tgl" id="tgl-measure" aria-pressed="true">Maten <span class="phase-tag">fase 2</span></button>
+        </div>
+        <span class="strip__hint">Beide scans staan op dezelfde plek. Wissel om te zien wat er veranderd is.</span>
+        <button class="text-btn" id="btn-overview" type="button">Overzicht</button>
+      </div>
+    </div>
+
+    <div class="summary">
+      <span class="pill pill--voor" id="pill-voor">6 problemen gevonden</span>
+      <span class="pill pill--na" id="pill-na">6 problemen opgelost</span>
+    </div>
+    <div class="findings">
+      <div>
+        <h2>Gevonden bij de inspectie</h2>
+        <ul class="list" id="list-voor"></ul>
+      </div>
+      <div>
+        <h2>Wat we hebben gedaan</h2>
+        <ul class="list" id="list-na"></ul>
+      </div>
+    </div>
+
+    <div class="contact">
+      <div>
+        <h2>Vragen over uw dak?</h2>
+        <p>Bel of mail ons, we helpen u graag.</p>
+      </div>
+      <div class="contact__lines">
+        <span>040 000 00 00</span>
+        <span>info@bedrijfsnaam.nl</span>
+      </div>
+    </div>
+    <p class="privacy">Deze pagina opent alleen met de persoonlijke link die u van ons hebt gekregen en blijft beschikbaar tot 6 oktober 2027. Via Google of andere zoekmachines is ze niet te vinden.</p>
+  </section>
+
+  <!-- ================= Factuurmail ================= -->
+  <section class="tab wrap" id="tab-mail" role="tabpanel" aria-labelledby="t-mail" hidden>
+    <h1 style="font-size:clamp(1.7rem,4vw,2.4rem)">Zo ziet de klant het in de factuurmail</h1>
+    <p class="lead">De factuur gaat gewoon vanuit Odoo de deur uit, zoals nu. Is er een video aan de factuur gekoppeld, dan staan er een voorbeeldplaatje en een knop extra in de mail. Hieronder de standaard Odoo-factuurmail met die toevoeging.</p>
+
+    <div class="mail-grid">
+      <article class="mail" aria-label="Voorbeeld van de factuurmail">
+        <div class="mail__head">
+          <div><span class="mail__k">Van</span><span class="mail__v">Bedrijfsnaam &lt;administratie@bedrijfsnaam.nl&gt;</span></div>
+          <div><span class="mail__k">Aan</span><span class="mail__v">De klant</span></div>
+          <div><span class="mail__k">Onderwerp</span><span class="mail__v mail__subject">Bedrijfsnaam Factuur (Ref F2026/0142)</span></div>
+        </div>
+        <div class="mail__body">
+          <p>Beste klant,</p>
+          <p>Hierbij vind je je factuur <b>F2026/0142</b> voor een totaalbedrag van <b>€&nbsp;485,00</b> van Bedrijfsnaam. Graag de betaling zo snel mogelijk in orde te brengen.</p>
+          <button class="mail__thumb" id="mail-thumb" type="button" aria-label="Bekijk de video van het dak">
+            <img id="mail-thumb-img" alt="" hidden>
+            <span class="play-mini"><svg aria-hidden="true"><use href="#i-play"/></svg></span>
+            <span class="dur" id="mail-dur">0:53</span>
+          </button>
+          <button class="cta" id="mail-cta" type="button">Bekijk de video van het dak</button>
+          <p>Met vriendelijke groeten,<br>Bedrijfsnaam</p>
+          <div class="attach"><b>F2026_0142.pdf</b><span>48 kB</span></div>
+        </div>
+      </article>
+
+      <aside class="notes">
+        <h2>Wat er achter de knop zit</h2>
+        <ul class="checks">
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>De knop staat alleen in de mail als er een video aan de factuur hangt. Andere facturen blijven zoals ze zijn.</span></li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>De knop opent de klantpagina: de video, het 3D-model en jullie contactgegevens.</span></li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>In de link staat geen naam of adres. Zonder de link is de pagina niet te vinden.</span></li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>De klant hoeft nergens in te loggen.</span></li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>Bij de factuur in Odoo komt een interne notitie met de link. Daar krijgt de klant geen mail van.</span></li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= Zo werkt het ================= -->
+  <section class="tab wrap" id="tab-werkwijze" role="tabpanel" aria-labelledby="t-werkwijze" hidden>
+    <h1 style="font-size:clamp(1.7rem,4vw,2.4rem)">Van dronescan tot video bij de factuur</h1>
+    <p class="lead">Bij elke klus wordt de woning twee keer gescand: vóór en na het werk. Het systeem maakt daar een video en een klantpagina van en koppelt die aan de factuur in Odoo.</p>
+
+    <ol class="steps">
+      <li class="step" data-tone="voor">
+        <div>
+          <h3>Inspectie en eerste scan <span class="who">Medewerker</span></h3>
+          <p>Dronevlucht met RTK, verwerken in DJI Terra zoals nu. Het 3D-model uploaden bij een nieuwe klus en de klant uit Odoo kiezen.</p>
+        </div>
+      </li>
+      <li class="step" data-tone="voor">
+        <div>
+          <h3>Problemen markeren <span class="who">Medewerker</span></h3>
+          <p>Rode markeringen op het 3D-model, met vaste labels zoals "Nestplaats duiven", "Invliegopening" of "Wespennest". Eigen tekst mag ook.</p>
+        </div>
+      </li>
+      <li class="step" data-tone="na">
+        <div>
+          <h3>Werk uitvoeren en tweede scan <span class="who">Medewerker</span></h3>
+          <p>Na het werk dezelfde vlucht nog een keer. Dankzij RTK komt de tweede scan vrijwel precies over de eerste; wijkt hij een paar centimeter af, dan schuift de medewerker hem met de hand recht.</p>
+        </div>
+      </li>
+      <li class="step" data-tone="na">
+        <div>
+          <h3>Oplossingen markeren en video maken <span class="who">Medewerker + systeem</span></h3>
+          <p>Groene markeringen, bijvoorbeeld "Gaas rond panelen geplaatst". Een rode markering is met één klik over te nemen in de tweede scan. Daarna op "Video maken" klikken. De video toont een rondvlucht vóór het werk, de problemen, een rondvlucht na het werk en de oplossingen, met jullie logo erin. In de video en op de klantpagina staat alleen de plaats, nooit de straat of het huisnummer.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div>
+          <h3>Koppelen aan de factuur <span class="who">Medewerker</span></h3>
+          <p>De factuur van de klant in Odoo kiezen, vóórdat die verstuurd wordt. De link komt bij de factuur te staan en de factuurmail krijgt de knop "Bekijk de video van het dak". Is de factuur al weg, dan gaat de link los mee in een mail of WhatsApp.</p>
+        </div>
+      </li>
+    </ol>
+    <p class="goal"><b>Doel:</b> per klus in minder dan tien minuten werk van twee DJI Terra-exports naar een video bij de factuur. Het verwerken in DJI Terra en het wachten op uploaden en renderen tellen niet mee.</p>
+
+    <div class="two-col">
+      <div class="box">
+        <h2>Blijft in Odoo</h2>
+        <ul>
+          <li>Klanten, offertes en facturen</li>
+          <li>Facturen versturen en betalingen</li>
+          <li>Het klantportaal voor tekenen en betalen</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h2>Doet het nieuwe systeem</h2>
+        <ul>
+          <li>Scans opslaan en tonen in 3D</li>
+          <li>Markeringen, video en klantpagina</li>
+          <li>Link en interne notitie bij de factuur</li>
+          <li>Link uitzetten wanneer jullie willen, met een einddatum per link</li>
+          <li>Zien of en hoe vaak de klant de pagina heeft bekeken, zonder gegevens van de kijker op te slaan</li>
+          <li>Werkt ook zonder Odoo: de link, een kant-en-klare zin voor mail of WhatsApp en een QR-code als plaatje</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="box" style="margin-top:18px">
+      <h2>Wat er in Odoo nodig is</h2>
+      <ul>
+        <li>Voor de automatische koppeling met facturen is het Odoo-abonnement Custom nodig (externe API en een extra veld op de factuur).</li>
+        <li>Zonder Custom werkt alles ook, alleen zet je de link dan zelf in de mail.</li>
+      </ul>
+    </div>
+
+    <div class="phases">
+      <h2>Stap voor stap uitbreiden</h2>
+      <div class="phase">
+        <div class="phase__tag"><b>Fase 1</b></div>
+        <div><h3>Voor/na-video en klantpagina <span class="status status--now">Eerst bouwen</span></h3><p>Alles op deze pagina: scans uploaden, markeren, video maken, klantpagina en de knop in de factuurmail.</p></div>
+      </div>
+      <div class="phase">
+        <div class="phase__tag"><b>Fase 2</b></div>
+        <div><h3>Meten, offerte en rapport <span class="status status--later">Daarna</span></h3><p>Afstanden, lengtes en oppervlaktes meten op het 3D-model. Een conceptofferte met de juiste aantallen direct in Odoo; de prijzen komen gewoon uit Odoo. Inspectierapport als PDF.</p></div>
+      </div>
+      <div class="phase">
+        <div class="phase__tag"><b>Fase 3</b></div>
+        <div><h3>Notities, foto's en status <span class="status status--later">Later</span></h3><p>Foto's en notities bij markeringen, gebruik op telefoon en tablet op locatie, status van de klus volgt Odoo vanzelf, één pagina voor de klant met inspectie, offerte en resultaat samen.</p></div>
+      </div>
+      <div class="phase">
+        <div class="phase__tag"><b>Fase 4</b></div>
+        <div><h3>Extra's <span class="status status--later">Alleen als het loont</span></h3><p>Zelf dronefoto's verwerken tot 3D zonder DJI Terra, inloggen met het bedrijfsaccount.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">Voorbeeld met een fictieve woning en verzonnen gegevens. In het echte systeem ziet de klant de dronescan van de eigen woning en is de video een gewoon MP4-bestand.</div>
+</footer>
+
+<script>
+/* Show a readable message if the 3D part never starts (old browser, no WebGL, CDN blocked). */
+setTimeout(function () {
+  if (!window.__previewReady) {
+    var fb = document.getElementById('ov-fallback');
+    var poster = document.getElementById('ov-poster');
+    var intro = document.getElementById('ov-intro');
+    if (fb) fb.hidden = false;
+    if (poster) poster.hidden = true;
+    if (intro) intro.style.opacity = '0';
+  }
+}, 12000);
+
+/* Marker texts: one source for the lists, the pins, the cards and the video. */
+window.PV_MARKERS = {
+  voor: [
+    { id: 'v1', label: 'Nestplaats duiven', note: 'Nest onder de zonnepanelen. Duiven komen hier steeds terug.' },
+    { id: 'v2', label: 'Duiven op de nok', note: 'Duiven zitten op de nok. Uitwerpselen op de pannen en de panelen.' },
+    { id: 'v3', label: 'Invliegopening', note: 'Verschoven dakpan: vogels kunnen onder het dak komen.' },
+    { id: 'v4', label: 'Rattenholen bij de boom', note: 'Drie holen tussen de wortels en een looppad door het gras.' },
+    { id: 'v5', label: 'Muizengat naast de voordeur', note: 'Gat in de plint naast de voordeur. Muizen kunnen zo naar binnen.' },
+    { id: 'v6', label: 'Mierennest in de oprit', note: 'Zandhoopjes tussen de klinkers: een mierennest onder de oprit.' },
+  ],
+  na: [
+    { id: 'n1', label: 'Gaas rond panelen geplaatst', note: 'Gaas rondom alle panelen, 17,0 m. Nest verwijderd, duiven kunnen er niet meer onder.' },
+    { id: 'n2', label: 'Pinnen op de nok geplaatst', note: 'Pinnen over de hele nok, 10,8 m. Dak en panelen gereinigd.' },
+    { id: 'n3', label: 'Invliegopening afgedicht', note: 'Dakpan teruggelegd, de opening is dicht.' },
+    { id: 'n4', label: 'Lokdoos geplaatst', note: 'Holen gedicht en een afgesloten lokdoos bij de boom gezet.' },
+    { id: 'n5', label: 'Muizengat gedicht', note: 'Gat gedicht met een rvs-rooster.' },
+    { id: 'n6', label: 'Mierennest bestreden', note: 'Nest behandeld en de voegen opnieuw ingeveegd.' },
+  ],
+};
+(function buildLists() {
+  ['voor', 'na'].forEach(function (ph) {
+    var ul = document.getElementById('list-' + ph);
+    window.PV_MARKERS[ph].forEach(function (m, i) {
+      var li = document.createElement('li');
+      li.innerHTML = '<button class="item" type="button" data-marker="' + m.id + '"><span class="badge badge--' + ph + '">' + (i + 1) + '</span><span class="item__label"></span><span class="item__go">Bekijk in 3D</span></button>';
+      li.querySelector('.item__label').textContent = m.label;
+      ul.appendChild(li);
+    });
+  });
+  document.getElementById('pill-voor').textContent = window.PV_MARKERS.voor.length + ' problemen gevonden';
+  document.getElementById('pill-na').textContent = window.PV_MARKERS.na.length + ' problemen opgelost';
+})();
+window.__scrollToPlayer = function () {
+  var p = document.getElementById('player');
+  var hb = document.querySelector('.pv-bar').offsetHeight;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  p.style.scrollMarginTop = (hb + 8) + 'px';
+  p.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: p.offsetHeight + hb + 16 > window.innerHeight ? 'start' : 'center' });
+};
+/* Tabs work without the 3D part. */
+(function () {
+  var tabs = document.querySelectorAll('.pv-tab');
+  function show(id, push) {
+    if (['klant', 'mail', 'werkwijze'].indexOf(id) < 0) id = 'klant';
+    tabs.forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === id)); b.tabIndex = b.dataset.tab === id ? 0 : -1; });
+    ['klant', 'mail', 'werkwijze'].forEach(function (k) { document.getElementById('tab-' + k).hidden = k !== id; });
+    if (push) { try { history.replaceState(null, '', '#' + id); } catch (e) {} }
+    window.dispatchEvent(new CustomEvent('pv:tab', { detail: id }));
+  }
+  tabs.forEach(function (b, i) {
+    b.addEventListener('click', function () { show(b.dataset.tab, true); window.scrollTo(0, 0); });
+    b.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var n = tabs[(i + d + tabs.length) % tabs.length];
+      n.focus(); n.click();
+    });
+  });
+  function openVideo() {
+    show('klant', true);
+    setTimeout(function () { window.__scrollToPlayer(); window.dispatchEvent(new CustomEvent('pv:play')); }, 60);
+  }
+  document.getElementById('mail-cta').addEventListener('click', openVideo);
+  document.getElementById('mail-thumb').addEventListener('click', openVideo);
+  window.__showTab = show;
+  var h = (location.hash || '').slice(1);
+  show(h || 'klant', false);
+})();
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+
+/*@@STAGE@@*/
+
+/*@@ASSETS@@*/
+
+const V3 = THREE.Vector3;
+const $ = (s) => document.querySelector(s);
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const easeInOutCubic = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+const easeInOutSine = (u) => -(Math.cos(Math.PI * u) - 1) / 2;
+const easeOutCubic = (u) => 1 - Math.pow(1 - u, 3);
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function rng(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ------------------------------------------------------------------
+   Roof geometry helpers. Metres. House walls x[-5,5], z[-4,4], eaves at
+   y=6, ridge at y=10 along x. South (-z) slope carries the solar panels.
+   s = distance along the slope from the wall line, lift = along normal.
+------------------------------------------------------------------- */
+const C45 = Math.SQRT1_2;
+const N_SOUTH = new V3(0, C45, -C45);
+const N_NORTH = new V3(0, C45, C45);
+const UP_SOUTH = new V3(0, C45, C45);
+const RIDGE_TOP = 10.18;
+const southPt = (x, s, lift = 0) => new V3(x, 6 + s * C45, -4 + s * C45).addScaledVector(N_SOUTH, lift);
+const northPt = (x, s, lift = 0) => new V3(x, 6 + s * C45, 4 - s * C45).addScaledVector(N_NORTH, lift);
+const Q_SOUTH = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 4, 0, 0, 'YXZ'));
+const Q_NORTH = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 4, Math.PI, 0, 'YXZ'));
+
+const PANELS = { x0: -3.3, cols: 5, w: 1.0, rows: 2, h: 1.7, gap: 0.02, s0: 1.1, lift: 0.15, t: 0.04 };
+PANELS.x1 = PANELS.x0 + PANELS.cols * PANELS.w + (PANELS.cols - 1) * PANELS.gap;
+PANELS.s1 = PANELS.s0 + PANELS.rows * PANELS.h + (PANELS.rows - 1) * PANELS.gap;
+
+/* Markers: the same data drives the pins, the lists and the camera path. */
+/* Same number = same spot: problem n in VOOR is solved by solution n in NA.
+   Ground-level spots (4-6) get their exact position once the garden is built. */
+const MARKERS = {
+  voor: [
+    { id: 'v1', label: 'Nestplaats duiven', pos: southPt(-2.4, 1.02, 0.14), view: new V3(0.35, 0.62, -1), dist: 4.3 },
+    { id: 'v2', label: 'Duiven op de nok', pos: new V3(-1.1, RIDGE_TOP + 0.3, 0), view: new V3(0.4, 0.75, -0.8), dist: 3.6 },
+    { id: 'v3', label: 'Invliegopening', pos: northPt(3.6, 0.9, 0.05), view: new V3(0.4, 0.7, 1), dist: 4.2 },
+    { id: 'v4', label: 'Rattenholen bij de boom', pos: new V3(-7.6, 0.2, 8.2), view: new V3(0.5, 0.9, -0.4), dist: 4.2 },
+    { id: 'v5', label: 'Muizengat naast de voordeur', pos: new V3(3.75, 0.3, -4.1), view: new V3(0.35, 0.32, -1), dist: 2.3 },
+    { id: 'v6', label: 'Mierennest in de oprit', pos: new V3(4.3, 0.06, -6.3), view: new V3(0.55, 1, -0.25), dist: 2.8 },
+  ],
+  na: [
+    { id: 'n1', label: 'Gaas rond zonnepanelen', pos: southPt(-1.3, 1.06, 0.1), view: new V3(0.3, 0.42, -1), dist: 4.0 },
+    { id: 'n2', label: 'Pinnen op de nok', pos: new V3(-1.5, RIDGE_TOP + 0.08, 0), view: new V3(0.85, 0.3, -0.45), dist: 3.2 },
+    { id: 'n3', label: 'Opening afgedicht', pos: northPt(3.6, 0.9, 0.05), view: new V3(0.4, 0.7, 1), dist: 4.2 },
+    { id: 'n4', label: 'Lokdoos geplaatst', pos: new V3(-7.6, 0.2, 8.2), view: new V3(0.5, 0.9, -0.4), dist: 4.2 },
+    { id: 'n5', label: 'Gat muisdicht gemaakt', pos: new V3(3.75, 0.3, -4.1), view: new V3(0.35, 0.32, -1), dist: 2.3 },
+    { id: 'n6', label: 'Mieren bestreden', pos: new V3(4.3, 0.06, -6.3), view: new V3(0.55, 1, -0.25), dist: 2.8 },
+  ],
+};
+for (const ph of ['voor', 'na']) MARKERS[ph].forEach((m, i) => {
+  const txt = window.PV_MARKERS[ph].find((x) => x.id === m.id);
+  m.phase = ph; m.n = i + 1; m.view.normalize();
+  m.label = txt.label; m.note = txt.note;
+});
+const ALL_MARKERS = [...MARKERS.voor, ...MARKERS.na];
+
+/* ------------------------------------------------------------------
+   Camera path. One deterministic function of time: the preview here and
+   the server-side render in the real system both sample it per frame.
+------------------------------------------------------------------- */
+const ORBIT = { target: new V3(0, 6.6, 0), radius: 20, height: 11, a0: -2.2 };
+/* Opening shot: high over the street, then down onto the house. */
+const EST = { pos: new V3(-30, 36, -58), target: new V3(0, 3, 0) };
+function orbitPose(u) {
+  const a = ORBIT.a0 + Math.PI * 2 * u;
+  return { pos: new V3(Math.cos(a) * ORBIT.radius, ORBIT.height, Math.sin(a) * ORBIT.radius), target: ORBIT.target.clone() };
+}
+function markerPose(m, k = 0) {
+  const d = m.dist * (1 - 0.1 * k);
+  return { pos: m.pos.clone().addScaledVector(m.view, d), target: m.pos.clone() };
+}
+/* Interpolate around the house (cylindrical), lifting over the roof, so the camera never flies through it. */
+function lerpPose(A, B, u) {
+  const e = easeInOutCubic(clamp01(u));
+  const ca = Math.atan2(A.pos.z, A.pos.x), cb = Math.atan2(B.pos.z, B.pos.x);
+  let da = cb - ca;
+  while (da > Math.PI) da -= Math.PI * 2;
+  while (da < -Math.PI) da += Math.PI * 2;
+  const ra = Math.hypot(A.pos.x, A.pos.z), rb = Math.hypot(B.pos.x, B.pos.z);
+  const bump = Math.min(4.5, Math.abs(da) * 2.6) * Math.sin(Math.PI * e);
+  const a = ca + da * e, r = lerp(ra, rb, e);
+  return {
+    pos: new V3(Math.cos(a) * r, lerp(A.pos.y, B.pos.y, e) + bump, Math.sin(a) * r),
+    target: A.target.clone().lerp(B.target, e),
+  };
+}
+
+function buildTimeline() {
+  const segs = [];
+  let t = 0;
+  const add = (type, dur, extra = {}) => { segs.push({ type, start: t, end: t + dur, dur, ...extra }); t += dur; };
+  add('intro', 3);
+  for (const phase of ['voor', 'na']) {
+    if (phase === 'na') add('wipe', 1.2);
+    add('title', phase === 'voor' ? 3 : 1.6, { phase });
+    add('orbit', 7, { phase });
+    MARKERS[phase].forEach((m, i) => {
+      add('move', 1.4, { phase, m, i, prev: MARKERS[phase][i - 1] || null });
+      add('hold', 1.7, { phase, m, i });
+    });
+  }
+  add('outro', 3.8);
+  return { segs, duration: t };
+}
+const TL = buildTimeline();
+const LAST = { voor: MARKERS.voor[MARKERS.voor.length - 1], na: MARKERS.na[MARKERS.na.length - 1] };
+
+function sample(time) {
+  const t = Math.max(0, Math.min(TL.duration - 1e-6, time));
+  const seg = TL.segs.find((s) => t >= s.start && t < s.end) || TL.segs[TL.segs.length - 1];
+  const u = (t - seg.start) / seg.dur;
+  const o = { t, scene: 'voor', pose: null, intro: 0, outro: 0, title: null, titleO: 0, badge: null, lower: null, lowerO: 0, wipe: -1, active: null, pins: null, mark: false };
+  switch (seg.type) {
+    case 'intro':
+      o.pose = { pos: EST.pos.clone(), target: EST.target.clone() };
+      o.intro = u < 0.86 ? 1 : 1 - (u - 0.86) / 0.14;
+      break;
+    case 'title':
+      o.scene = seg.phase;
+      if (seg.phase === 'voor') {
+        const e = easeInOutCubic(u), end = orbitPose(0);
+        o.pose = { pos: EST.pos.clone().lerp(end.pos, e), target: EST.target.clone().lerp(end.target, e) };
+      } else o.pose = orbitPose(0);
+      o.title = seg.phase; o.titleO = Math.min(clamp01(u / 0.14), clamp01((1 - u) / 0.2));
+      o.badge = seg.phase; o.pins = null; o.mark = true;
+      break;
+    case 'orbit':
+      o.scene = seg.phase; o.pose = orbitPose(easeInOutSine(u));
+      o.badge = seg.phase; o.pins = seg.phase; o.mark = true;
+      break;
+    case 'move': {
+      const from = seg.prev ? markerPose(seg.prev, 1) : orbitPose(1);
+      o.scene = seg.phase; o.pose = lerpPose(from, markerPose(seg.m, 0), u);
+      o.lower = seg; o.lowerO = clamp01((u - 0.55) / 0.35);
+      o.active = u > 0.45 ? seg.m.id : null;
+      o.badge = seg.phase; o.pins = seg.phase; o.mark = true;
+      break;
+    }
+    case 'hold':
+      o.scene = seg.phase; o.pose = markerPose(seg.m, easeOutCubic(u));
+      o.lower = seg; o.lowerO = u > 0.9 ? 1 - (u - 0.9) / 0.1 : 1;
+      o.active = seg.m.id; o.badge = seg.phase; o.pins = seg.phase; o.mark = true;
+      break;
+    case 'wipe':
+      o.wipe = easeInOutCubic(u);
+      if (u < 0.5) { o.scene = 'voor'; o.pose = markerPose(LAST.voor, 1); }
+      else { o.scene = 'na'; o.pose = orbitPose(0); }
+      o.mark = true;
+      break;
+    case 'outro':
+      o.scene = 'na'; o.pose = markerPose(LAST.na, 1);
+      o.outro = Math.min(1, u / 0.12);
+      break;
+  }
+  return o;
+}
+
+/* ------------------------------------------------------------------
+   Renderer
+------------------------------------------------------------------- */
+const viewer = $('#viewer');
+const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+const QUALITY = window.__forceQuality || (!coarse && Math.min(window.screen.width, window.screen.height) >= 700 ? 'high' : 'low');
+let stage;
+try {
+  stage = createStage({ canvas: document.createElement('canvas'), quality: QUALITY, look: { fog: 0.0013 } });
+} catch (err) {
+  $('#ov-fallback').hidden = false; $('#ov-poster').hidden = true; $('#ov-intro').style.opacity = '0';
+  throw err;
+}
+const { renderer, scene, camera } = stage;
+/* The scene is static apart from switching Voor/Na, so the shadow map is only redrawn when that happens. */
+renderer.shadowMap.autoUpdate = false;
+renderer.shadowMap.needsUpdate = true;
+viewer.prepend(renderer.domElement);
+const ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
+/* ------------------------------------------------------------------
+   Procedural textures (canvas). 1 uv unit = 1 metre unless noted.
+------------------------------------------------------------------- */
+function canvasTex(w, h, draw, { repeat = true, srgb = true } = {}) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = ANISO;
+  return t;
+}
+function speckle(g, w, h, R, n, alpha, light = false) {
+  for (let i = 0; i < n; i++) {
+    g.fillStyle = light ? `rgba(255,255,255,${R() * alpha})` : `rgba(0,0,0,${R() * alpha})`;
+    const s = 1 + R() * 1.6;
+    g.fillRect(R() * w, R() * h, s, s);
+  }
+}
+/* Bricks: texture spans 2 m x 1 m (Dutch waalformaat, 16 courses per metre). */
+const brickTex = canvasTex(512, 256, (g, w, h) => {
+  const R = rng(7);
+  g.fillStyle = '#b8ada0'; g.fillRect(0, 0, w, h);
+  const rows = 16, rh = h / rows, per = 9, bw = w / per;
+  for (let r = 0; r < rows; r++) {
+    const off = (r % 2) * bw / 2;
+    for (let i = -1; i <= per; i++) {
+      const v = (R() - 0.5) * 34, d = R() < 0.12 ? -22 : 0;
+      g.fillStyle = `rgb(${(138 + v + d) | 0},${(64 + v * 0.55 + d) | 0},${(46 + v * 0.45 + d) | 0})`;
+      g.fillRect(i * bw + off + 1.5, r * rh + 1.5, bw - 3, rh - 3);
+    }
+  }
+  speckle(g, w, h, R, 5000, 0.1);
+});
+/* Roof tiles: 2 m x 2 m, 7 pans per row, 6 rows. Canvas top of each row faces the eave. */
+const tileTex = canvasTex(512, 512, (g, w, h) => {
+  const R = rng(11);
+  const cols = 7, rows = 6, tw = w / cols, th = h / rows;
+  g.fillStyle = '#3c1c15'; g.fillRect(0, 0, w, h);
+  for (let r = 0; r < rows; r++) {
+    const off = (r % 2) * tw * 0.5;
+    for (let c = -1; c < cols; c++) {
+      const x = c * tw + off, y = r * th, v = (R() - 0.5) * 22;
+      const grd = g.createLinearGradient(0, y, 0, y + th);
+      grd.addColorStop(0, `rgb(${(96 + v) | 0},${(42 + v * 0.5) | 0},${(30 + v * 0.4) | 0})`);
+      grd.addColorStop(0.16, `rgb(${(170 + v) | 0},${(82 + v * 0.6) | 0},${(56 + v * 0.5) | 0})`);
+      grd.addColorStop(1, `rgb(${(150 + v) | 0},${(70 + v * 0.6) | 0},${(48 + v * 0.5) | 0})`);
+      g.fillStyle = grd; g.fillRect(x + 1, y + 1, tw - 2, th - 2);
+      const hg = g.createLinearGradient(x, 0, x + tw, 0);
+      hg.addColorStop(0, 'rgba(255,225,205,0.06)');
+      hg.addColorStop(0.32, 'rgba(255,225,205,0.2)');
+      hg.addColorStop(0.68, 'rgba(0,0,0,0.12)');
+      hg.addColorStop(1, 'rgba(0,0,0,0.26)');
+      g.fillStyle = hg; g.fillRect(x + 1, y + 1, tw - 2, th - 2);
+    }
+  }
+  speckle(g, w, h, R, 6000, 0.12);
+  speckle(g, w, h, R, 1500, 0.08, true);
+});
+/* Height maps: mortar joints recessed, tiles raised at their overlapping lower edge and curved across. */
+const brickBump = canvasTex(512, 256, (g, w, h) => {
+  const R = rng(8);
+  g.fillStyle = '#202020'; g.fillRect(0, 0, w, h);
+  const rows = 16, rh = h / rows, per = 9, bw = w / per;
+  for (let r = 0; r < rows; r++) {
+    const off = (r % 2) * bw / 2;
+    for (let i = -1; i <= per; i++) {
+      const v = 190 + (R() - 0.5) * 30;
+      g.fillStyle = `rgb(${v | 0},${v | 0},${v | 0})`;
+      g.fillRect(i * bw + off + 2, r * rh + 2, bw - 4, rh - 4);
+    }
+  }
+  speckle(g, w, h, R, 6000, 0.25);
+}, { srgb: false });
+const tileBump = canvasTex(512, 512, (g, w, h) => {
+  const cols = 7, rows = 6, tw = w / cols, th = h / rows;
+  for (let r = 0; r < rows; r++) {
+    const off = (r % 2) * tw * 0.5;
+    for (let c = -1; c < cols; c++) {
+      const x = c * tw + off, y = r * th;
+      const v = g.createLinearGradient(0, y, 0, y + th);
+      v.addColorStop(0, '#303030'); v.addColorStop(0.14, '#d8d8d8'); v.addColorStop(1, '#9a9a9a');
+      g.fillStyle = v; g.fillRect(x, y, tw, th);
+      const hx = g.createLinearGradient(x, 0, x + tw, 0);
+      hx.addColorStop(0, 'rgba(0,0,0,0.35)'); hx.addColorStop(0.35, 'rgba(255,255,255,0.25)'); hx.addColorStop(0.75, 'rgba(0,0,0,0.05)'); hx.addColorStop(1, 'rgba(0,0,0,0.45)');
+      g.fillStyle = hx; g.fillRect(x, y, tw, th);
+    }
+  }
+}, { srgb: false });
+const windowRough = canvasTex(128, 128, (g, w, h) => {
+  g.fillStyle = '#d0d0d0'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#141414'; g.fillRect(10, 10, w - 20, h - 20);
+  g.fillStyle = '#d0d0d0'; g.fillRect(w / 2 - 4, 10, 8, h - 20); g.fillRect(10, h * 0.36, w - 20, 6);
+}, { repeat: false, srgb: false });
+/* Solar panel, 1.0 m x 1.7 m, 6 x 10 cells. */
+const panelTex = canvasTex(240, 408, (g, w, h) => {
+  g.fillStyle = '#c4c9cf'; g.fillRect(0, 0, w, h);
+  const m = 6; g.fillStyle = '#0d1422'; g.fillRect(m, m, w - 2 * m, h - 2 * m);
+  const cols = 6, rows = 10, cw = (w - 2 * m) / cols, ch = (h - 2 * m) / rows;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const x = m + c * cw, y = m + r * ch;
+    const grd = g.createLinearGradient(x, y, x + cw, y + ch);
+    grd.addColorStop(0, '#22324f'); grd.addColorStop(1, '#141e33');
+    g.fillStyle = grd; g.fillRect(x + 1.2, y + 1.2, cw - 2.4, ch - 2.4);
+    g.fillStyle = 'rgba(190,200,220,0.28)';
+    for (let k = 1; k <= 3; k++) g.fillRect(x + (cw * k) / 4, y + 1.2, 0.8, ch - 2.4);
+  }
+}, { repeat: false });
+const windowTex = canvasTex(128, 128, (g, w, h) => {
+  g.fillStyle = '#f2f0ea'; g.fillRect(0, 0, w, h);
+  const grd = g.createLinearGradient(0, 0, w, h);
+  grd.addColorStop(0, '#5d7487'); grd.addColorStop(0.5, '#25303b'); grd.addColorStop(1, '#3b4a57');
+  g.fillStyle = grd; g.fillRect(10, 10, w - 20, h - 20);
+  g.fillStyle = '#f2f0ea'; g.fillRect(w / 2 - 4, 10, 8, h - 20); g.fillRect(10, h * 0.36, w - 20, 6);
+  g.fillStyle = 'rgba(255,255,255,0.18)';
+  g.beginPath(); g.moveTo(14, 14); g.lineTo(44, 14); g.lineTo(14, 52); g.fill();
+}, { repeat: false });
+const doorTex = canvasTex(128, 256, (g, w, h) => {
+  g.fillStyle = '#f2f0ea'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#26352e'; g.fillRect(8, 8, w - 16, h - 8);
+  g.strokeStyle = 'rgba(255,255,255,0.12)'; g.lineWidth = 3;
+  g.strokeRect(22, 26, w - 44, h * 0.36); g.strokeRect(22, h * 0.5, w - 44, h * 0.42);
+  g.fillStyle = '#c9c4b8'; g.fillRect(w - 30, h * 0.52, 8, 22);
+}, { repeat: false });
+/* Bird mesh (gaas): texture spans 10 cm, 4 x 4 cells of 2.5 cm. */
+const meshTex = canvasTex(64, 64, (g, w, h) => {
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = 'rgba(120,126,132,0.45)'; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(215,220,225,1)';
+  for (let i = 0; i < 4; i++) { g.fillRect(i * 16, 0, 5, h); g.fillRect(0, i * 16, w, 5); }
+}, { srgb: true });
+const grimeTex = canvasTex(512, 128, (g, w, h) => {
+  const R = rng(19);
+  g.clearRect(0, 0, w, h);
+  for (let i = 0; i < 260; i++) {
+    const x = R() * w, y = R() * h, r = 1.5 + R() * 6;
+    const a = 0.12 + R() * 0.25;
+    const grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, `rgba(245,243,236,${a})`); grd.addColorStop(1, 'rgba(245,243,236,0)');
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  for (let i = 0; i < 40; i++) {
+    const x = R() * w, y = R() * h;
+    g.fillStyle = `rgba(70,64,55,${0.08 + R() * 0.12})`;
+    g.beginPath(); g.ellipse(x, y, 10 + R() * 30, 4 + R() * 10, 0, 0, Math.PI * 2); g.fill();
+  }
+}, { repeat: false });
+
+function scaleUV(geo, su, sv) {
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv);
+  uv.needsUpdate = true;
+  return geo;
+}
+function boxUV(geo, w, h, d, tw, th) {
+  const dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  const uv = geo.attributes.uv;
+  for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) {
+    const i = f * 4 + k;
+    uv.setXY(i, (uv.getX(i) * dims[f][0]) / tw, (uv.getY(i) * dims[f][1]) / th);
+  }
+  uv.needsUpdate = true;
+  return geo;
+}
+
+/* ------------------------------------------------------------------
+   Materials and scene graph
+------------------------------------------------------------------- */
+const mat = (o) => new THREE.MeshStandardMaterial(o);
+const M = {
+  brick: mat({ map: brickTex, bumpMap: brickBump, bumpScale: 1.6, roughness: 0.93 }),
+  tile: mat({ map: tileTex, bumpMap: tileBump, bumpScale: 2.4, roughness: 0.72 }),
+  roofEdge: mat({ color: 0x5a2a1e, roughness: 0.85 }),
+  ridge: mat({ color: 0x7a3426, roughness: 0.8 }),
+  trim: mat({ color: 0xece9e2, roughness: 0.7 }),
+  plinth: mat({ color: 0x4b4e50, roughness: 0.9 }),
+  zinc: mat({ color: 0xa3aaaf, roughness: 0.45, metalness: 0.25 }),
+  frame: mat({ color: 0xbfc5cc, roughness: 0.4, metalness: 0.2 }),
+  panel: new THREE.MeshPhysicalMaterial({ map: panelTex, roughness: 0.3, specularIntensity: 0.3 }),
+  rail: mat({ color: 0x8d949a, roughness: 0.5, metalness: 0.3 }),
+  window: mat({ map: windowTex, roughnessMap: windowRough, roughness: 1, envMapIntensity: 1.4 }),
+  door: mat({ map: doorTex, roughness: 0.6 }),
+  hole: mat({ color: 0x2b1d17, roughness: 1 }),
+  newTile: mat({ map: tileTex, color: 0xffe0d0, roughness: 0.7 }),
+  oldTile: mat({ map: tileTex, roughness: 0.8 }),
+  batten: mat({ color: 0x6b4a2e, roughness: 0.9 }),
+  drop: mat({ color: 0xffffff, roughness: 0.9 }),
+  twig: mat({ color: 0xffffff, roughness: 1 }),
+  spike: mat({ color: 0xdfe4e8, roughness: 0.3, metalness: 0.55 }),
+  strip: mat({ color: 0xc7ccd0, roughness: 0.4, transparent: true, opacity: 0.85 }),
+  clip: mat({ color: 0x2a2e31, roughness: 0.6 }),
+  grime: new THREE.MeshStandardMaterial({ map: grimeTex, transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2 }),
+  pigeon: mat({ color: 0x8a93a2, roughness: 0.9 }),
+  pigeonDark: mat({ color: 0x5f6775, roughness: 0.9 }),
+  pigeonNeck: mat({ color: 0x5e7a70, roughness: 0.55, metalness: 0.15 }),
+  beak: mat({ color: 0x3a3532, roughness: 0.7 }),
+};
+
+const world = new THREE.Group();
+const common = new THREE.Group();
+const voorOnly = new THREE.Group();
+const naOnly = new THREE.Group();
+world.add(common, voorOnly, naOnly);
+scene.add(world);
+const occluders = [];
+
+function add(parent, geo, material, pos, opts = {}) {
+  const m = new THREE.Mesh(geo, material);
+  if (pos) m.position.copy(pos);
+  if (opts.q) m.quaternion.copy(opts.q);
+  if (opts.rot) m.rotation.set(...opts.rot);
+  m.castShadow = opts.cast !== false;
+  m.receiveShadow = opts.receive !== false;
+  parent.add(m);
+  if (opts.occ) occluders.push(m);
+  return m;
+}
+
+/* Environment: street, neighbours, garden, trees and cars come from the asset kits inlined above. */
+const HOOD = (function buildEnvironment() {
+  try {
+    const hood = HoodKit.buildNeighbourhood({ seed: 7 });
+    common.add(hood.group);
+    for (const t of hood.treeSpots || []) {
+      const o = TreesKit.buildTree({ seed: t.seed, height: t.height, kind: t.kind, detail: t.detail });
+      o.position.set(t.x, 0, t.z); common.add(o);
+    }
+    for (const b of hood.shrubSpots || []) {
+      const o = TreesKit.buildShrub({ seed: b.seed, radius: b.radius, height: b.height, kind: b.kind });
+      o.position.set(b.x, 0, b.z); common.add(o);
+    }
+    for (const r of hood.hedgeRuns || []) {
+      const o = TreesKit.buildHedge({ length: r.length, height: r.height, depth: r.depth, seed: r.seed });
+      o.position.set(r.x, 0, r.z); o.rotation.y = r.rotationY || 0; common.add(o);
+    }
+    for (const c of hood.carSpots || []) {
+      const o = CarKit.buildCar({ color: c.color, style: c.style, plate: c.plate, seed: c.seed || 1 });
+      o.position.set(c.x, 0, c.z); o.rotation.y = c.yaw || 0; common.add(o);
+    }
+    return hood;
+  } catch (err) {
+    console.error('environment', err);
+    const g = new THREE.Mesh(new THREE.CircleGeometry(600, 64), new THREE.MeshStandardMaterial({ color: 0x5f8a45, roughness: 1 }));
+    g.rotation.x = -Math.PI / 2; g.receiveShadow = true; common.add(g);
+    return null;
+  }
+})();
+/* Survey drone: hovers on the poster and circles the roof in 3D mode. Hidden during the video, which is its own view. */
+const droneRig = new THREE.Group();
+const drone = (() => {
+  try {
+    const d = DroneKit.buildDrone({ seed: 3 });
+    d.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+    droneRig.add(d);
+    droneRig.scale.setScalar(3);
+    scene.add(droneRig);
+    return d;
+  } catch (e) { console.error('drone', e); return null; }
+})();
+function updateDrone(time) {
+  if (!drone) return;
+  const show = state.mode === 'explore' || !state.started;
+  droneRig.visible = show;
+  if (!show) return;
+  if (state.mode === 'explore') {
+    const a = time * (Math.PI * 2 / 48);
+    droneRig.position.set(Math.cos(a) * 8.5, 13.4, Math.sin(a) * 8.5);
+    droneRig.rotation.y = -a;
+  } else {
+    droneRig.position.set(-2.3, 10.4, -12.2);
+    droneRig.rotation.y = 0.19;
+  }
+  DroneKit.animateDrone(drone, time);
+}
+
+/* Soft contact shading around the house base (helps most where screen-space AO is off). */
+(function addBaseShade() {
+  const tex = canvasTex(256, 256, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    for (let i = 0; i < 24; i++) {
+      const k = i / 24, inset = 20 + k * 70;
+      g.fillStyle = `rgba(0,0,0,${0.035})`;
+      g.beginPath(); g.roundRect(inset, inset, w - inset * 2, h - inset * 2, 40 * (1 - k) + 6); g.fill();
+    }
+  }, { repeat: false });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(14.5, 12.5), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: QUALITY === 'high' ? 0.55 : 0.9, polygonOffset: true, polygonOffsetFactor: -4, fog: false }));
+  m.rotation.x = -Math.PI / 2; m.position.y = 0.04; m.renderOrder = 1; m.userData.noAO = true;
+  common.add(m);
+})();
+
+/* House body */
+add(common, boxUV(new THREE.BoxGeometry(10, 6, 8), 10, 6, 8, 2, 1), M.brick, new V3(0, 3, 0), { occ: true });
+add(common, new THREE.BoxGeometry(10.08, 0.45, 8.08), M.plinth, new V3(0, 0.225, 0), { occ: true });
+for (const side of [1, -1]) {
+  const tri = new THREE.Shape([new THREE.Vector2(-4, 0), new THREE.Vector2(4, 0), new THREE.Vector2(0, 4)]);
+  const geo = scaleUV(new THREE.ShapeGeometry(tri), 0.5, 1);
+  geo.rotateY(side * Math.PI / 2);
+  add(common, geo, M.brick, new V3(side * 5, 6, 0), { occ: true });
+}
+/* Windows and doors: [x or z along the wall, y centre, width, height, face] */
+function addOpening(along, y, w, h, face, material = M.window) {
+  const geo = new THREE.PlaneGeometry(w, h);
+  const m = new THREE.Mesh(geo, material);
+  m.receiveShadow = true;
+  const off = 0.025;
+  if (face === 'S') { m.position.set(along, y, -4 - off); m.rotation.y = Math.PI; }
+  if (face === 'N') { m.position.set(along, y, 4 + off); }
+  if (face === 'E') { m.position.set(5 + off, y, along); m.rotation.y = Math.PI / 2; }
+  if (face === 'W') { m.position.set(-5 - off, y, along); m.rotation.y = -Math.PI / 2; }
+  common.add(m);
+  if (material === M.window) {
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(face === 'E' || face === 'W' ? 0.12 : w + 0.12, 0.06, face === 'E' || face === 'W' ? w + 0.12 : 0.12), M.trim);
+    sill.position.copy(m.position).add(new V3(0, -h / 2 - 0.03, 0));
+    if (face === 'S') sill.position.z -= 0.04;
+    if (face === 'N') sill.position.z += 0.04;
+    if (face === 'E') sill.position.x += 0.04;
+    if (face === 'W') sill.position.x -= 0.04;
+    sill.castShadow = true;
+    common.add(sill);
+  }
+}
+addOpening(2.9, 1.55, 1.05, 2.2, 'S', M.door);
+addOpening(-3.2, 1.8, 1.7, 1.4, 'S'); addOpening(-0.6, 1.8, 1.7, 1.4, 'S');
+addOpening(-3.2, 4.4, 1.2, 1.3, 'S'); addOpening(-0.6, 4.4, 1.2, 1.3, 'S'); addOpening(2.9, 4.4, 1.2, 1.3, 'S');
+addOpening(-1.4, 1.6, 2.6, 2.2, 'N'); addOpening(2.6, 1.8, 1.4, 1.4, 'N');
+addOpening(-3.0, 4.4, 1.2, 1.3, 'N'); addOpening(0.2, 4.4, 1.2, 1.3, 'N'); addOpening(3.0, 4.4, 1.2, 1.3, 'N');
+for (const f of ['E', 'W']) { addOpening(1.6, 1.8, 1.2, 1.4, f); addOpening(-1.2, 4.4, 1.1, 1.3, f); addOpening(0, 7.3, 0.7, 0.9, f); }
+
+/* Roof slopes: local y = outward normal, local z = up the slope, so the tile texture runs the same way on both sides. */
+const SLOPE = { w: 10.8, sMin: -0.5, sMax: 5.66, t: 0.14 };
+function addSlope(side) {
+  const L = SLOPE.sMax - SLOPE.sMin;
+  const geo = scaleUV(new THREE.BoxGeometry(SLOPE.w, SLOPE.t, L), SLOPE.w / 2, L / 2);
+  const mats = [M.roofEdge, M.roofEdge, M.tile, M.roofEdge, M.roofEdge, M.roofEdge];
+  const mid = (SLOPE.sMin + SLOPE.sMax) / 2;
+  const pos = side === 'south' ? southPt(0, mid, -SLOPE.t / 2) : northPt(0, mid, -SLOPE.t / 2);
+  add(common, geo, mats, pos, { q: side === 'south' ? Q_SOUTH : Q_NORTH, occ: true });
+  /* Gable boards along both roof edges */
+  for (const sx of [-1, 1]) {
+    const bpos = side === 'south' ? southPt(sx * 5.42, mid, -0.06) : northPt(sx * 5.42, mid, -0.06);
+    add(common, new THREE.BoxGeometry(0.05, 0.26, L + 0.02), M.trim, bpos, { q: side === 'south' ? Q_SOUTH : Q_NORTH });
+  }
+  /* Fascia and gutter */
+  const eave = side === 'south' ? southPt(0, SLOPE.sMin, -0.14) : northPt(0, SLOPE.sMin, -0.14);
+  add(common, new THREE.BoxGeometry(SLOPE.w, 0.22, 0.04), M.trim, eave.clone().add(new V3(0, -0.02, 0)));
+  const g = add(common, new THREE.CylinderGeometry(0.075, 0.075, SLOPE.w + 0.1, 12), M.zinc, eave.clone().add(new V3(0, -0.1, side === 'south' ? -0.1 : 0.1)), { rot: [0, 0, Math.PI / 2] });
+  g.receiveShadow = false;
+  for (const sx of [-1, 1]) {
+    add(common, new THREE.CylinderGeometry(0.04, 0.04, 5.5, 8), M.zinc, new V3(sx * 4.85, 2.85, side === 'south' ? -4.1 : 4.1));
+  }
+}
+addSlope('south'); addSlope('north');
+/* Ridge cap */
+add(common, new THREE.BoxGeometry(SLOPE.w + 0.04, 0.25, 0.25), M.ridge, new V3(0, 10.0, 0), { rot: [Math.PI / 4, 0, 0], occ: true });
+/* Chimney on the north slope */
+add(common, boxUV(new THREE.BoxGeometry(0.7, 2.6, 0.62), 0.7, 2.6, 0.62, 2, 1), M.brick, new V3(2.8, 9.6, 1.0), { occ: true });
+add(common, new THREE.BoxGeometry(0.86, 0.09, 0.78), M.plinth, new V3(2.8, 10.94, 1.0), { occ: true });
+
+/* Solar panels with mounting rails. The gap underneath is where pigeons nest. */
+for (let r = 0; r < PANELS.rows; r++) {
+  const sc = PANELS.s0 + r * (PANELS.h + PANELS.gap) + PANELS.h / 2;
+  for (const rs of [-0.5, 0.5]) {
+    add(common, new THREE.BoxGeometry(PANELS.x1 - PANELS.x0 + 0.1, 0.05, 0.04), M.rail, southPt((PANELS.x0 + PANELS.x1) / 2, sc + rs, 0.06), { q: Q_SOUTH });
+  }
+  for (let c = 0; c < PANELS.cols; c++) {
+    const xc = PANELS.x0 + c * (PANELS.w + PANELS.gap) + PANELS.w / 2;
+    const mats = [M.frame, M.frame, M.panel, M.frame, M.frame, M.frame];
+    add(common, new THREE.BoxGeometry(PANELS.w, PANELS.t, PANELS.h), mats, southPt(xc, sc, PANELS.lift + PANELS.t / 2), { q: Q_SOUTH, occ: true });
+  }
+}
+
+/* ---------- VOOR only: nests, droppings, pigeons, a missing tile ---------- */
+const twigGeo = new THREE.CylinderGeometry(0.006, 0.004, 0.16, 5);
+function addNest(xc, sc, seed, count = 52) {
+  const R = rng(seed);
+  const inst = new THREE.InstancedMesh(twigGeo, M.twig, count);
+  const m4 = new THREE.Matrix4(), e = new THREE.Euler(), q = new THREE.Quaternion(), col = new THREE.Color();
+  for (let i = 0; i < count; i++) {
+    const ang = R() * Math.PI * 2, rad = 0.04 + R() * 0.24;
+    const p = southPt(xc + Math.cos(ang) * rad * 1.25, sc + Math.sin(ang) * rad * 0.75, 0.02 + R() * 0.1);
+    e.set((R() - 0.5) * 0.5, R() * Math.PI, Math.PI / 2 + (R() - 0.5) * 0.5);
+    q.setFromEuler(e).premultiply(Q_SOUTH);
+    m4.compose(p, q, new V3(1, 0.7 + R() * 0.8, 1));
+    inst.setMatrixAt(i, m4);
+    col.setRGB(0.32 + R() * 0.15, 0.22 + R() * 0.1, 0.12 + R() * 0.06, THREE.SRGBColorSpace);
+    inst.setColorAt(i, col);
+  }
+  inst.castShadow = true;
+  voorOnly.add(inst);
+}
+addNest(-2.4, 1.0, 31, 110); addNest(0.7, 1.05, 32, 80);
+
+const dropGeo = new THREE.SphereGeometry(1, 7, 5);
+(function addDroppings() {
+  const R = rng(41);
+  const spots = [];
+  for (let i = 0; i < 150; i++) {
+    const nearNest = R() < 0.45;
+    const x = nearNest ? -2.4 + (R() - 0.5) * 1.6 : lerp(PANELS.x0 - 0.2, PANELS.x1 + 0.1, R());
+    spots.push({ p: southPt(x, 0.1 + R() * 0.95, 0.006), q: Q_SOUTH, r: 0.008 + R() * 0.016 });
+  }
+  for (let i = 0; i < 10; i++) {
+    spots.push({ p: southPt(lerp(PANELS.x0 + 0.05, PANELS.x1 - 0.05, R()), lerp(PANELS.s0 + 0.05, PANELS.s1 - 0.05, R()), PANELS.lift + PANELS.t + 0.002), q: Q_SOUTH, r: 0.008 + R() * 0.014 });
+  }
+  for (const xr of [-3.6, -1.1, 4.2]) for (let i = 0; i < 14; i++) {
+    const side = R() < 0.5;
+    const s = 5.15 + R() * 0.45;
+    spots.push({ p: side ? southPt(xr + (R() - 0.5) * 0.8, s, 0.006) : northPt(xr + (R() - 0.5) * 0.8, s, 0.006), q: side ? Q_SOUTH : Q_NORTH, r: 0.008 + R() * 0.015 });
+  }
+  const inst = new THREE.InstancedMesh(dropGeo, M.drop, spots.length);
+  const m4 = new THREE.Matrix4();
+  const col = new THREE.Color();
+  spots.forEach((d, i) => {
+    m4.compose(d.p, d.q, new V3(d.r, d.r * 0.15, d.r * (1.4 + R() * 1.2)));
+    inst.setMatrixAt(i, m4);
+    inst.setColorAt(i, col.setHex(R() < 0.3 ? 0x7a7466 : 0xd6d1c4));
+  });
+  inst.receiveShadow = true;
+  voorOnly.add(inst);
+})();
+(function addGrime() {
+  const geo = new THREE.PlaneGeometry(PANELS.x1 - PANELS.x0 + 0.6, 1.05);
+  geo.rotateX(-Math.PI / 2);
+  const m = add(voorOnly, geo, M.grime, southPt((PANELS.x0 + PANELS.x1) / 2, 0.55, 0.008), { q: Q_SOUTH, cast: false });
+  m.renderOrder = 2; m.userData.noAO = true;
+})();
+
+const pigeons = [];
+const unitSphere = new THREE.SphereGeometry(1, 14, 10);
+const beakGeo = new THREE.ConeGeometry(0.013, 0.045, 8);
+function makePigeon(seed) {
+  const R = rng(seed);
+  const g = new THREE.Group();
+  const part = (material, s, p, cast = true) => {
+    const m = new THREE.Mesh(unitSphere, material);
+    m.scale.set(...s); m.position.set(...p); m.castShadow = cast; g.add(m); return m;
+  };
+  part(M.pigeon, [0.1, 0.092, 0.165], [0, 0, 0]);
+  part(M.pigeonDark, [0.03, 0.065, 0.14], [0.082, 0.02, -0.03]);
+  part(M.pigeonDark, [0.03, 0.065, 0.14], [-0.082, 0.02, -0.03]);
+  part(M.pigeonNeck, [0.06, 0.07, 0.06], [0, 0.07, 0.1]);
+  const head = new THREE.Group();
+  head.position.set(0, 0.125, 0.14);
+  const skull = new THREE.Mesh(unitSphere, M.pigeon);
+  skull.scale.setScalar(0.048); skull.castShadow = true;
+  const beak = new THREE.Mesh(beakGeo, M.beak);
+  beak.rotation.x = Math.PI / 2; beak.position.set(0, -0.006, 0.058);
+  head.add(skull, beak);
+  g.add(head);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.016, 0.15), M.pigeonDark);
+  tail.position.set(0, 0.015, -0.2); tail.rotation.x = -0.28; tail.castShadow = true;
+  g.add(tail);
+  g.userData = { head, phase: R() * Math.PI * 2, speed: 1.6 + R() * 1.6 };
+  return g;
+}
+for (const [p, yaw, seed] of [
+  [new V3(-3.6, RIDGE_TOP + 0.085, 0.02), Math.PI / 2, 51],
+  [new V3(-1.1, RIDGE_TOP + 0.085, -0.02), -Math.PI / 2 + 0.4, 52],
+  [new V3(4.2, RIDGE_TOP + 0.085, 0), 2.7, 53],
+  [southPt(-1.85, 0.78, 0.085), Math.PI + 0.3, 54],
+  [southPt(1.05, 0.82, 0.085), Math.PI - 0.6, 55],
+  [southPt(-0.3, PANELS.s1 - 0.12, PANELS.lift + PANELS.t + 0.085), Math.PI + 0.2, 56],
+]) {
+  const b = makePigeon(seed);
+  b.position.copy(p); b.rotation.y = yaw;
+  voorOnly.add(b); pigeons.push(b);
+}
+/* Missing tile with the displaced one next to it */
+(function () {
+  const hole = new THREE.PlaneGeometry(0.29, 0.34); hole.rotateX(-Math.PI / 2);
+  add(voorOnly, hole, M.hole, northPt(3.6, 0.9, 0.004), { q: Q_NORTH, cast: false });
+  add(voorOnly, new THREE.BoxGeometry(0.31, 0.02, 0.03), M.batten, northPt(3.6, 0.95, 0.012), { q: Q_NORTH });
+  const loose = add(voorOnly, boxUV(new THREE.BoxGeometry(0.29, 0.025, 0.34), 0.29, 0.025, 0.34, 2, 2), M.oldTile, northPt(3.78, 0.62, 0.03), { q: Q_NORTH });
+  loose.rotateY(0.35);
+})();
+
+/* ---------- NA only: mesh skirt, ridge spikes, patched tile ---------- */
+(function addSkirt() {
+  const h = PANELS.lift + PANELS.t;
+  const xm = (PANELS.x0 + PANELS.x1) / 2, sm = (PANELS.s0 + PANELS.s1) / 2;
+  const W = PANELS.x1 - PANELS.x0, L = PANELS.s1 - PANELS.s0;
+  const X = new V3(1, 0, 0);
+  const edges = [
+    { len: W, c: southPt(xm, PANELS.s0 - 0.006, h / 2), ax: X },
+    { len: W, c: southPt(xm, PANELS.s1 + 0.006, h / 2), ax: X },
+    { len: L, c: southPt(PANELS.x0 - 0.006, sm, h / 2), ax: UP_SOUTH },
+    { len: L, c: southPt(PANELS.x1 + 0.006, sm, h / 2), ax: UP_SOUTH },
+  ];
+  for (const e of edges) {
+    const tex = meshTex.clone(); tex.needsUpdate = true;
+    tex.repeat.set(e.len / 0.1, h / 0.1);
+    const material = new THREE.MeshStandardMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false, roughness: 0.5, metalness: 0.3, color: 0xe8ecef });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(e.len, h), material);
+    const z = new V3().crossVectors(e.ax, N_SOUTH);
+    mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(e.ax, N_SOUTH, z));
+    mesh.position.copy(e.c);
+    mesh.userData.noAO = true;
+    naOnly.add(mesh);
+    const clip = new THREE.Mesh(new THREE.BoxGeometry(e.len, 0.018, 0.018), M.clip);
+    clip.quaternion.copy(mesh.quaternion);
+    clip.position.copy(e.c).addScaledVector(N_SOUTH, -h / 2 + 0.01);
+    naOnly.add(clip);
+  }
+})();
+(function addSpikes() {
+  const geo = new THREE.CylinderGeometry(0.0035, 0.0065, 0.13, 5);
+  geo.translate(0, 0.065, 0);
+  const tilts = [-0.55, 0, 0.55];
+  const xs = [];
+  for (let x = -5.3; x <= 5.3; x += 0.1) xs.push(x);
+  const inst = new THREE.InstancedMesh(geo, M.spike, xs.length * tilts.length);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  let i = 0;
+  for (const x of xs) for (const t of tilts) {
+    q.setFromEuler(e.set(t, 0, 0));
+    m4.compose(new V3(x, RIDGE_TOP, 0), q, new V3(1, 1, 1));
+    inst.setMatrixAt(i++, m4);
+  }
+  inst.castShadow = true;
+  naOnly.add(inst);
+  add(naOnly, new THREE.BoxGeometry(10.65, 0.012, 0.06), M.strip, new V3(0, RIDGE_TOP, 0), { cast: false }).userData.noAO = true;
+})();
+add(naOnly, boxUV(new THREE.BoxGeometry(0.29, 0.03, 0.34), 0.29, 0.03, 0.34, 2, 2), M.newTile, northPt(3.6, 0.9, 0.01), { q: Q_NORTH });
+
+/* ------------------------------------------------------------------
+   Ground-level issues: rats at a garden tree, mice at the front door,
+   ants under the driveway. VOOR shows the problem, NA the fix.
+------------------------------------------------------------------- */
+const groundRay = new THREE.Raycaster();
+function groundY(x, z) {
+  if (!HOOD) return 0;
+  groundRay.set(new V3(x, 2, z), new V3(0, -1, 0));
+  groundRay.far = 2.5;
+  const hit = groundRay.intersectObject(HOOD.group, true).find((h) => h.object.isMesh && !h.object.isInstancedMesh && h.point.y < 0.35);
+  return hit ? hit.point.y : 0;
+}
+const GM = {
+  fur: mat({ color: 0x5c4f43, roughness: 0.95 }),
+  furLight: mat({ color: 0x8b7b6b, roughness: 0.95 }),
+  pink: mat({ color: 0xc99a94, roughness: 0.8 }),
+  eye: mat({ color: 0x050505, roughness: 0.2 }),
+  soil: mat({ color: 0x4a3626, roughness: 1 }),
+  soilFresh: mat({ color: 0x6a5039, roughness: 1 }),
+  holeDark: mat({ color: 0x0d0907, roughness: 1 }),
+  sand: mat({ color: 0xa8987a, roughness: 1 }),
+  ant: mat({ color: 0x1a120c, roughness: 0.6 }),
+  plastic: mat({ color: 0x1c1d1f, roughness: 0.55 }),
+  steel: mat({ color: 0xc2c8ce, roughness: 0.3, metalness: 0.85 }),
+};
+function makeRodent(material, scale) {
+  const g = new THREE.Group();
+  const part = (m, sc, p) => { const o = new THREE.Mesh(unitSphere, m); o.scale.set(...sc); o.position.set(...p); o.castShadow = true; g.add(o); return o; };
+  part(material, [0.075, 0.062, 0.13], [0, 0.062, 0]);
+  part(material, [0.045, 0.04, 0.062], [0, 0.074, 0.125]);
+  const snout = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.055, 10), material);
+  snout.rotation.x = Math.PI / 2; snout.position.set(0, 0.068, 0.19); g.add(snout);
+  part(GM.pink, [0.006, 0.006, 0.006], [0, 0.068, 0.218]);
+  for (const sx of [-1, 1]) {
+    part(GM.pink, [0.022, 0.022, 0.007], [sx * 0.03, 0.112, 0.112]);
+    part(GM.eye, [0.0075, 0.0075, 0.0075], [sx * 0.027, 0.088, 0.158]);
+  }
+  const tail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+    new V3(0, 0.045, -0.12), new V3(0.03, 0.02, -0.22), new V3(-0.025, 0.008, -0.31), new V3(0.04, 0.006, -0.4),
+  ]), 20, 0.007, 6), GM.pink);
+  tail.castShadow = true; g.add(tail);
+  g.scale.setScalar(scale);
+  return g;
+}
+function flatDisc(radius, material, x, y, z, sx = 1, sz = 1) {
+  const m = new THREE.Mesh(new THREE.CircleGeometry(radius, 20), material);
+  m.rotation.x = -Math.PI / 2; m.scale.set(sx, sz, 1); m.position.set(x, y, z); m.receiveShadow = true;
+  return m;
+}
+function setGroundMarker(id, p) { ALL_MARKERS.find((m) => m.id === id).pos.copy(p); }
+/* A burrow opening: black core, dark soil rim, ragged edge fading into the grass. */
+const burrowTex = canvasTex(128, 128, (g, w, h) => {
+  const r2 = rng(13);
+  g.clearRect(0, 0, w, h);
+  for (let i = 0; i < 140; i++) {
+    const a = r2() * Math.PI * 2, d = 26 + r2() * 30;
+    g.fillStyle = `rgba(${(70 + r2() * 30) | 0},${(52 + r2() * 20) | 0},${(36 + r2() * 15) | 0},${0.35 + r2() * 0.4})`;
+    g.beginPath(); g.arc(w / 2 + Math.cos(a) * d, h / 2 + Math.sin(a) * d * 0.8, 2 + r2() * 4, 0, Math.PI * 2); g.fill();
+  }
+  const grd = g.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, 34);
+  grd.addColorStop(0, 'rgba(4,3,2,1)'); grd.addColorStop(0.55, 'rgba(12,8,5,1)'); grd.addColorStop(0.8, 'rgba(48,34,22,0.95)'); grd.addColorStop(1, 'rgba(60,44,30,0)');
+  g.fillStyle = grd; g.beginPath(); g.ellipse(w / 2, h / 2, 36, 29, 0, 0, Math.PI * 2); g.fill();
+}, { repeat: false });
+const gnawTex = canvasTex(128, 96, (g, w, h) => {
+  const r2 = rng(17);
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = 'rgba(150,146,140,0.9)';
+  for (let i = 0; i < 70; i++) { const a = r2() * Math.PI * 2, d = 30 + r2() * 10; g.fillRect(w / 2 + Math.cos(a) * d * 1.2, h / 2 + Math.sin(a) * d * 0.85, 2 + r2() * 3, 2 + r2() * 3); }
+  g.fillStyle = '#060504';
+  g.beginPath();
+  for (let i = 0; i <= 28; i++) { const a = (i / 28) * Math.PI * 2, d = 27 + r2() * 7; const x = w / 2 + Math.cos(a) * d * 1.25, y = h / 2 + Math.sin(a) * d * 0.9; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+  g.closePath(); g.fill();
+}, { repeat: false });
+function decal(tex, w, h, x, y, z, rotY = 0, flat = true) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -3 }));
+  if (flat) m.rotation.set(-Math.PI / 2, 0, rotY); else m.rotation.y = rotY;
+  m.position.set(x, y, z); m.receiveShadow = true; m.userData.noAO = true; m.renderOrder = 2;
+  return m;
+}
+(function buildGroundIssues() {
+  const R = rng(77);
+  /* Rats: holes between the roots of the back-garden tree, facing the house. */
+  const spots = (HOOD && HOOD.treeSpots) || [];
+  const tree = spots.filter((t) => t.detail === 'hero').sort((a, b) => Math.hypot(a.x + 8.5, a.z - 9) - Math.hypot(b.x + 8.5, b.z - 9))[0] || { x: -8.5, z: 9 };
+  const toHouse = new V3(-tree.x, 0, -tree.z).normalize();
+  const side = new V3(-toHouse.z, 0, toHouse.x);
+  const base = new V3(tree.x, 0, tree.z).addScaledVector(toHouse, 0.95);
+  const gy = groundY(base.x, base.z);
+  const holes = [[-0.32, 0.05], [0.12, -0.12], [0.42, 0.18]].map(([a, b]) => base.clone().addScaledVector(side, a).addScaledVector(toHouse, b));
+  const yaw = Math.atan2(toHouse.x, toHouse.z);
+  for (const h of holes) {
+    voorOnly.add(decal(burrowTex, 0.26, 0.22, h.x, gy + 0.016, h.z, yaw));
+    const mound = new THREE.Mesh(unitSphere, GM.soilFresh);
+    mound.scale.set(0.12, 0.022, 0.06); mound.position.copy(h).addScaledVector(toHouse, -0.13).setY(gy + 0.004);
+    mound.rotation.y = yaw; mound.receiveShadow = mound.castShadow = true; voorOnly.add(mound);
+    for (let i = 0; i < 6; i++) {
+      const c = new THREE.Mesh(unitSphere, GM.soilFresh);
+      const rr = 0.012 + R() * 0.02;
+      c.scale.set(rr, rr * 0.6, rr); c.position.copy(h).addScaledVector(toHouse, -0.08 - R() * 0.15).addScaledVector(side, (R() - 0.5) * 0.3).setY(gy + 0.004);
+      c.castShadow = true; voorOnly.add(c);
+    }
+    naOnly.add(flatDisc(0.09, GM.soilFresh, h.x, gy + 0.012, h.z, 1.15, 1));
+  }
+  /* Worn run through the grass towards the fence. */
+  const runTex = canvasTex(64, 256, (g, w, h) => {
+    const r2 = rng(5);
+    for (let i = 0; i < 900; i++) {
+      const y = r2() * h, x = w / 2 + (r2() - 0.5) * w * (0.35 + 0.25 * Math.sin(y / 30));
+      g.fillStyle = `rgba(${(88 + r2() * 30) | 0},${(70 + r2() * 20) | 0},${(48 + r2() * 15) | 0},${0.25 + r2() * 0.35})`;
+      g.fillRect(x, y, 2 + r2() * 3, 2 + r2() * 3);
+    }
+  }, { repeat: false });
+  const run = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 3.2), new THREE.MeshStandardMaterial({ map: runTex, transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2 }));
+  run.rotation.x = -Math.PI / 2;
+  run.rotation.z = Math.atan2(-side.x, -side.z) + 0.35;
+  run.position.copy(base).addScaledVector(side, -1.9).addScaledVector(toHouse, -0.2).setY(gy + 0.016);
+  run.userData.noAO = true; voorOnly.add(run);
+  const rat1 = makeRodent(GM.fur, 1);
+  rat1.position.copy(holes[1]).addScaledVector(toHouse, 0.28).addScaledVector(side, 0.12).setY(gy);
+  rat1.rotation.y = Math.atan2(toHouse.x, toHouse.z) + 0.6;
+  const rat2 = makeRodent(GM.fur, 0.9);
+  rat2.position.copy(base).addScaledVector(side, -1.2).addScaledVector(toHouse, 0.05).setY(gy);
+  rat2.rotation.y = Math.atan2(side.x, side.z) + 0.2;
+  voorOnly.add(rat1, rat2);
+  /* Bait box (lokdoos) next to the trunk, closed. */
+  const box = new THREE.Group();
+  const shell = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.26), GM.plastic);
+  shell.position.y = 0.08; shell.castShadow = shell.receiveShadow = true;
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.03, 0.28), GM.plastic);
+  lid.position.y = 0.165; lid.castShadow = true;
+  const labelTex = canvasTex(128, 80, (g, w, h) => {
+    g.fillStyle = '#f2c94c'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#111'; g.beginPath(); g.moveTo(w / 2, 12); g.lineTo(w / 2 + 30, h - 12); g.lineTo(w / 2 - 30, h - 12); g.closePath(); g.fill();
+    g.fillStyle = '#f2c94c'; g.fillRect(w / 2 - 3, 32, 6, 20); g.fillRect(w / 2 - 3, 56, 6, 6);
+  }, { repeat: false });
+  const label = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.09), new THREE.MeshStandardMaterial({ map: labelTex, roughness: 0.6 }));
+  label.rotation.x = -Math.PI / 2; label.position.y = 0.182;
+  box.add(shell, lid, label);
+  box.position.copy(base).addScaledVector(toHouse, 0.25).setY(gy);
+  box.rotation.y = Math.atan2(side.x, side.z);
+  naOnly.add(box);
+  setGroundMarker('v4', holes[1].clone().setY(gy + 0.12));
+  setGroundMarker('n4', box.position.clone().setY(gy + 0.24));
+  for (const id of ['v4', 'n4']) {
+    const mk = ALL_MARKERS.find((m) => m.id === id);
+    mk.view.copy(toHouse).multiplyScalar(0.6).add(new V3(0, 1.25, 0)).addScaledVector(side, 0.55).normalize();
+    mk.dist = 3.0;
+  }
+
+  /* Mice: gnawed hole in the plinth right of the front door. */
+  voorOnly.add(decal(gnawTex, 0.11, 0.082, 3.75, 0.23, -4.047, Math.PI, false));
+  const dy = groundY(3.85, -4.3);
+  const mouse = makeRodent(GM.furLight, 0.55);
+  mouse.position.set(3.98, dy, -4.26); mouse.rotation.y = -2.3;
+  voorOnly.add(mouse);
+  for (let i = 0; i < 14; i++) {
+    const c = new THREE.Mesh(unitSphere, GM.furLight);
+    c.scale.set(0.005, 0.003, 0.009); c.position.set(3.6 + R() * 0.4, dy + 0.003, -4.1 - R() * 0.25); c.rotation.y = R() * 3;
+    voorOnly.add(c);
+  }
+  const grilleTex = meshTex.clone(); grilleTex.needsUpdate = true; grilleTex.repeat.set(1.4, 1.1);
+  const grille = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.11), new THREE.MeshStandardMaterial({ map: grilleTex, transparent: true, color: 0xd9dee3, metalness: 0.8, roughness: 0.3, side: THREE.DoubleSide }));
+  grille.position.set(3.75, 0.23, -4.05); grille.rotation.y = Math.PI; grille.userData.noAO = true;
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.12, 0.006), GM.steel);
+  frame.position.set(3.75, 0.23, -4.043);
+  const frameHole = new THREE.Mesh(new THREE.PlaneGeometry(0.126, 0.096), GM.holeDark);
+  frameHole.position.set(3.75, 0.23, -4.047); frameHole.rotation.y = Math.PI;
+  naOnly.add(frame, frameHole, grille);
+  setGroundMarker('v5', new V3(3.75, 0.3, -4.1));
+  setGroundMarker('n5', new V3(3.75, 0.3, -4.1));
+
+  /* Ants: sand pushed up between the driveway pavers, with a trail. */
+  const ac = new V3(4.3, 0, -6.3);
+  const ay = groundY(ac.x, ac.z);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  const sandGeo = new THREE.SphereGeometry(1, 8, 6);
+  const sand = new THREE.InstancedMesh(sandGeo, GM.sand, 110);
+  for (let i = 0; i < 110; i++) {
+    /* Piles sit in the joints (every 10 cm along x or z) of the paving. */
+    const alongX = R() < 0.5;
+    const jx = alongX ? ac.x + (R() - 0.5) * 0.7 : ac.x + Math.round((R() - 0.5) * 6) * 0.1;
+    const jz = alongX ? ac.z + Math.round((R() - 0.5) * 6) * 0.1 : ac.z + (R() - 0.5) * 0.7;
+    const rr = 0.004 + R() * R() * 0.012;
+    m4.compose(new V3(jx, ay + 0.001, jz), q.setFromEuler(e.set(0, R() * 3, 0)), new V3(rr * 1.5, rr * 0.35, rr));
+    sand.setMatrixAt(i, m4);
+  }
+  sand.castShadow = sand.receiveShadow = true;
+  voorOnly.add(sand);
+  const antGeo = new THREE.CapsuleGeometry(0.0022, 0.006, 2, 5);
+  antGeo.rotateX(Math.PI / 2);
+  const ants = new THREE.InstancedMesh(antGeo, GM.ant, 190);
+  for (let i = 0; i < 190; i++) {
+    let x, z;
+    if (i < 130) { const a = R() * Math.PI * 2, r = Math.sqrt(R()) * 0.38; x = ac.x + Math.cos(a) * r; z = ac.z + Math.sin(a) * r; }
+    else { const t = R(); x = lerp(ac.x - 0.1, 3.4, t) + (R() - 0.5) * 0.05; z = lerp(ac.z + 0.2, -4.7, t) + (R() - 0.5) * 0.05; }
+    q.setFromEuler(e.set(0, R() * Math.PI * 2, 0));
+    m4.compose(new V3(x, ay + 0.004, z), q, new V3(1, 1, 1));
+    ants.setMatrixAt(i, m4);
+  }
+  voorOnly.add(ants);
+  const bait = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.042, 0.014, 20), GM.plastic);
+  bait.position.set(ac.x + 0.05, ay + 0.007, ac.z); bait.castShadow = true;
+  const baitTop = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.016, 16), mat({ color: 0xb8312b, roughness: 0.5 }));
+  baitTop.position.set(ac.x + 0.05, ay + 0.012, ac.z);
+  naOnly.add(bait, baitTop);
+  setGroundMarker('v6', new V3(ac.x, ay + 0.06, ac.z));
+  setGroundMarker('n6', new V3(ac.x + 0.05, ay + 0.06, ac.z));
+})();
+
+/* ------------------------------------------------------------------
+   Measurements (explore mode, "Maten"): roof edges as coloured lines with
+   labels. Values come from the same geometry, like the RTK model would.
+------------------------------------------------------------------- */
+const fmtNum = (v, d) => v.toFixed(d).replace('.', ',');
+const MEASURE = (() => {
+  const lift = 0.05, R = RIDGE_TOP + 0.03;
+  const COL = { ridge: 0xffd43b, eave: 0x4d8dff, verge: 0x35d0dc, panel: 0xff9a3c };
+  const segs = [{ a: new V3(-5.4, R, 0), b: new V3(5.4, R, 0), c: COL.ridge }];
+  for (const pt of [southPt, northPt]) {
+    segs.push({ a: pt(-5.4, SLOPE.sMin, lift), b: pt(5.4, SLOPE.sMin, lift), c: COL.eave });
+    for (const sx of [-5.42, 5.42]) segs.push({ a: pt(sx, SLOPE.sMin, lift), b: new V3(sx, R, 0), c: COL.verge });
+  }
+  const pl = PANELS.lift + PANELS.t + 0.03;
+  const x0 = PANELS.x0 - 0.04, x1 = PANELS.x1 + 0.04, s0 = PANELS.s0 - 0.04, s1 = PANELS.s1 + 0.04;
+  const k = [southPt(x0, s0, pl), southPt(x1, s0, pl), southPt(x1, s1, pl), southPt(x0, s1, pl)];
+  for (let i = 0; i < 4; i++) segs.push({ a: k[i], b: k[(i + 1) % 4], c: COL.panel });
+  const slopeLen = SLOPE.sMax - SLOPE.sMin;
+  const pw = PANELS.x1 - PANELS.x0, ph = PANELS.s1 - PANELS.s0;
+  const labels = [
+    { text: `Nok ${fmtNum(SLOPE.w, 2)} m`, at: new V3(1.2, R + 0.05, 0), kind: 'ridge' },
+    { text: `Goot ${fmtNum(SLOPE.w, 2)} m`, at: southPt(-3.9, SLOPE.sMin, lift), kind: 'eave' },
+    { text: `Dakvlak ${fmtNum(SLOPE.w * slopeLen, 1)} m²`, at: southPt(3.75, 2.6, lift), kind: 'area' },
+    { text: `Dakvlak ${fmtNum(SLOPE.w * slopeLen, 1)} m²`, at: northPt(-1.2, 2.6, lift), kind: 'area' },
+    { text: 'Helling 45°', at: southPt(-5.42, 3.3, lift), kind: 'angle' },
+    { text: `Panelen ${fmtNum(pw * ph, 1)} m²`, at: southPt(PANELS.x0 + pw * 0.3, PANELS.s0 + ph * 0.75, pl), kind: 'area' },
+    { text: `Gaas rondom ${fmtNum(2 * (pw + ph), 1)} m`, at: southPt(x1, PANELS.s0 + ph * 0.5, pl), kind: 'key' },
+  ];
+  return { segs, labels };
+})();
+const measureLines = (() => {
+  const pos = [], col = [], c = new THREE.Color();
+  for (const sg of MEASURE.segs) {
+    pos.push(sg.a.x, sg.a.y, sg.a.z, sg.b.x, sg.b.y, sg.b.z);
+    c.set(sg.c).multiplyScalar(1.7);
+    col.push(c.r, c.g, c.b, c.r, c.g, c.b);
+  }
+  const geo = new LineSegmentsGeometry();
+  geo.setPositions(pos); geo.setColors(col);
+  const mat = new LineMaterial({ vertexColors: true, linewidth: 3.5, worldUnits: false, transparent: true, depthWrite: false });
+  const lines = new LineSegments2(geo, mat);
+  lines.userData.noAO = true;
+  lines.renderOrder = 4;
+  lines.visible = false;
+  scene.add(lines);
+  return lines;
+})();
+
+/* ------------------------------------------------------------------
+   Pins and lists (DOM)
+------------------------------------------------------------------- */
+const pinsEl = $('#pins');
+const pins = ALL_MARKERS.map((m) => {
+  const el = document.createElement('div');
+  el.className = `pin pin--${m.phase}`;
+  el.hidden = true;
+  const kind = m.phase === 'voor' ? 'Probleem' : 'Oplossing';
+  el.innerHTML = `<span class="pin__dot"></span><span class="pin__stem"></span><button class="pin__btn" type="button" aria-label="${kind} ${m.n}: ${m.label}"><span class="pin__num">${m.n}</span><span class="pin__label">${m.label}</span></button>`;
+  el.querySelector('button').addEventListener('click', () => focusMarker(m));
+  pinsEl.appendChild(el);
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = `card card--${m.phase}`;
+  card.hidden = true;
+  card.setAttribute('aria-label', `${kind} ${m.n}: ${m.label}. ${m.note}`);
+  card.innerHTML = `<span class="card__head"><span class="card__dot">${m.n}</span>${m.label}</span><img class="card__img" alt=""><span class="card__note">${m.note}</span>`;
+  card.addEventListener('click', () => focusMarker(m));
+  $('#cards').appendChild(card);
+  return { m, el, card, btn: el.querySelector('button'), last: '', cardLast: '' };
+});
+const annoEl = $('#anno');
+const mlabels = MEASURE.labels.map((l) => {
+  const el = document.createElement('div');
+  el.className = `mlabel mlabel--${l.kind}`;
+  el.textContent = l.text;
+  el.hidden = true;
+  annoEl.appendChild(el);
+  return { ...l, el, last: '' };
+});
+document.querySelectorAll('.item[data-marker]').forEach((b) => {
+  const m = ALL_MARKERS.find((x) => x.id === b.dataset.marker);
+  b.addEventListener('click', () => { focusMarker(m); window.__scrollToPlayer(); });
+});
+
+const ray = new THREE.Raycaster();
+const tmp = new V3(), dir = new V3();
+let viewW = 0, viewH = 0;
+const measure = document.createElement('canvas').getContext('2d');
+measure.font = '600 13px Figtree, system-ui, sans-serif';
+for (const p of pins) p.labelW = measure.measureText(p.m.label).width + 20;
+function updatePins(showPhase, activeId) {
+  const shown = [];
+  for (const p of pins) {
+    if (p.m.phase !== showPhase) { if (!p.el.hidden) p.el.hidden = true; continue; }
+    tmp.copy(p.m.pos).project(camera);
+    if (tmp.z > 1 || Math.abs(tmp.x) > 1 || Math.abs(tmp.y) > 1) { if (!p.el.hidden) p.el.hidden = true; continue; }
+    const x = (tmp.x * 0.5 + 0.5) * viewW, y = (-tmp.y * 0.5 + 0.5) * viewH;
+    if (p.el.hidden) p.el.hidden = false;
+    const tr = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    if (tr !== p.last) { p.el.style.transform = tr; p.last = tr; }
+    dir.copy(p.m.pos).sub(camera.position);
+    const dist = dir.length();
+    dir.normalize();
+    ray.set(camera.position, dir);
+    ray.far = dist - 0.2;
+    const occ = ray.intersectObjects(occluders, false).length > 0;
+    p.el.classList.toggle('is-occluded', occ);
+    p.el.classList.toggle('is-active', p.m.id === activeId);
+    p.btn.tabIndex = state.mode === 'explore' && !occ ? 0 : -1;
+    shown.push({ p, x, y, occ, dist, active: p.m.id === activeId });
+  }
+  /* Cards and labels never overlap: the active and nearest visible pins win. */
+  shown.sort((a, b) => (b.active - a.active) || (a.occ - b.occ) || (a.dist - b.dist));
+  const boxes = [];
+  const hit = (b) => boxes.some((o) => b.x < o.x + o.w + 4 && b.x + b.w + 4 > o.x && b.y < o.y + o.h + 4 && b.y + b.h + 4 > o.y);
+  const withCards = state.mode === 'explore' && state.notes;
+  const narrow = viewW < 640;
+  const shownCards = new Set();
+  for (const e of shown) {
+    const head = { x: e.x - 15, y: e.y - 45, w: 30, h: 30 };
+    if (state.mode === 'video' && !e.occ && !e.active && hit(head)) { e.p.el.hidden = true; continue; }
+    if (withCards && !e.occ && narrow && e.active) {
+      /* Phones: the active note docks at the bottom of the viewer instead of floating. */
+      shownCards.add(e.p);
+      if (e.p.card.hidden) e.p.card.hidden = false;
+      e.p.card.classList.add('is-docked');
+      e.p.card.classList.remove('is-below');
+      if (e.p.cardLast !== 'dock') { e.p.card.style.transform = `translate(8px, ${(viewH - 8 - (e.p.card.offsetHeight || 70)).toFixed(1)}px)`; e.p.cardLast = 'dock'; }
+      boxes.push({ x: 8, y: viewH - 8 - (e.p.card.offsetHeight || 70), w: e.p.card.offsetWidth || 300, h: e.p.card.offsetHeight || 70 }, head);
+      e.p.el.classList.add('has-card');
+      e.p.el.classList.remove('no-label', 'label-left');
+      continue;
+    }
+    if (withCards && !e.occ && !narrow) {
+      const cw = 196;
+      if (e.p.card.hidden) { e.p.card.hidden = false; e.p.card.classList.remove('is-docked'); e.p.cardH = e.p.card.offsetHeight; e.p.card.hidden = true; }
+      const ch = e.p.cardH || 190;
+      let box = null, below = false;
+      for (const [dx, under] of [[0, false], [-0.62, false], [0.62, false], [0, true], [-0.62, true], [0.62, true]]) {
+        const x = Math.max(6, Math.min(viewW - cw - 6, e.x - cw / 2 + dx * cw));
+        const b = { x, y: under ? e.y + 14 : e.y - 54 - ch, w: cw, h: ch };
+        if (b.y >= 6 && b.y + ch <= viewH - 6 && !hit(b)) { box = b; below = under; break; }
+      }
+      if (box) {
+        shownCards.add(e.p);
+        if (e.p.card.hidden) e.p.card.hidden = false;
+        e.p.card.classList.remove('is-docked');
+        e.p.card.classList.toggle('is-below', below);
+        const tr = `translate(${box.x.toFixed(1)}px, ${box.y.toFixed(1)}px)`;
+        if (tr !== e.p.cardLast) { e.p.card.style.transform = tr; e.p.cardLast = tr; }
+        e.p.card.style.setProperty('--px', `${Math.max(14, Math.min(cw - 14, e.x - box.x)).toFixed(0)}px`);
+        e.p.el.classList.add('has-card');
+        e.p.el.classList.remove('no-label', 'label-left');
+        boxes.push(box, head);
+        continue;
+      }
+    }
+    e.p.el.classList.remove('has-card');
+    const right = { ...head, w: 36 + e.p.labelW };
+    const left = { x: e.x + 15 - (36 + e.p.labelW), y: head.y, w: 36 + e.p.labelW, h: 30 };
+    let place = null;
+    if (state.mode === 'video') {
+      /* The video shows numbers only; hidden pins take no space. */
+      if (!e.occ) boxes.push(head);
+      continue;
+    }
+    if (!e.occ) {
+      if (!hit(right) && right.x + right.w <= viewW) place = 'right';
+      else if (!hit(left) && left.x >= 0) place = 'left';
+    }
+    e.p.el.classList.toggle('no-label', !place);
+    e.p.el.classList.toggle('label-left', place === 'left');
+    boxes.push(place === 'right' ? right : place === 'left' ? left : head);
+  }
+  for (const p of pins) if (!shownCards.has(p) && !p.card.hidden) { p.card.hidden = true; p.el.classList.remove('has-card'); }
+  return boxes;
+}
+const mlabelW = new Map();
+function updateMeasureLabels(boxes) {
+  const on = state.mode === 'explore' && state.measure;
+  measureLines.visible = on;
+  for (const l of mlabels) {
+    if (!on) { if (!l.el.hidden) l.el.hidden = true; continue; }
+    tmp.copy(l.at).project(camera);
+    let ok = tmp.z <= 1 && Math.abs(tmp.x) < 1.05 && Math.abs(tmp.y) < 1.05;
+    if (ok) {
+      dir.copy(l.at).sub(camera.position);
+      const dist = dir.length();
+      dir.normalize();
+      ray.set(camera.position, dir); ray.far = dist - 0.3;
+      ok = ray.intersectObjects(occluders, false).length === 0;
+    }
+    let box = null;
+    if (ok) {
+      const w = l.w || measure.measureText(l.text).width + 24, h = 26;
+      const x = (tmp.x * 0.5 + 0.5) * viewW, y = (-tmp.y * 0.5 + 0.5) * viewH;
+      box = { x: x - w / 2, y: y - h / 2, w, h };
+      if (box.x < 2 || box.x + w > viewW - 2 || box.y < 2 || box.y + h > viewH - 2 || boxes.some((o) => box.x < o.x + o.w + 3 && box.x + w + 3 > o.x && box.y < o.y + o.h + 3 && box.y + h + 3 > o.y)) box = null;
+    }
+    if (!box) { if (!l.el.hidden) l.el.hidden = true; continue; }
+    if (l.el.hidden) { l.el.hidden = false; l.w = l.el.offsetWidth || l.w; }
+    boxes.push(box);
+    const tr = `translate(${box.x.toFixed(1)}px, ${box.y.toFixed(1)}px)`;
+    if (tr !== l.last) { l.el.style.transform = tr; l.last = tr; }
+  }
+}
+
+/* ------------------------------------------------------------------
+   Video overlays
+------------------------------------------------------------------- */
+const ov = {
+  intro: $('#ov-intro'), outro: $('#ov-outro'), title: $('#ov-title'), titleBig: $('#ov-title-big'), titleSub: $('#ov-title-sub'),
+  badge: $('#ov-badge'), lower: $('#ov-lower'), lowerNum: $('#ov-lower-num'), lowerKicker: $('#ov-lower-kicker'), lowerLabel: $('#ov-lower-label'),
+  wipe: $('#ov-wipe'), mark: $('#ov-mark'), poster: $('#ov-poster'), end: $('#ov-end'), hint: $('#ov-hint'),
+};
+const cache = new Map();
+function setStyle(el, key, val) {
+  const k = el.id + key;
+  if (cache.get(k) === val) return;
+  cache.set(k, val);
+  el.style[key] = val;
+}
+function setText(el, val) { if (el.textContent !== val) el.textContent = val; }
+function setData(el, val) { if (el.dataset.phase !== val) el.dataset.phase = val; }
+const TITLES = {
+  voor: ['VOOR', 'Bij de inspectie · 29 september 2026'],
+  na: ['NA', 'Na onze werkzaamheden · 6 oktober 2026'],
+};
+function applyOverlays(s) {
+  setStyle(ov.intro, 'opacity', s.intro.toFixed(3));
+  setStyle(ov.outro, 'opacity', s.outro.toFixed(3));
+  if (s.title) { setData(ov.title, s.title); setText(ov.titleBig, TITLES[s.title][0]); setText(ov.titleSub, TITLES[s.title][1]); }
+  setStyle(ov.title, 'opacity', s.titleO.toFixed(3));
+  if (s.badge) { setData(ov.badge, s.badge); setText(ov.badge, s.badge.toUpperCase()); }
+  setStyle(ov.badge, 'opacity', s.badge && s.titleO === 0 ? '1' : '0');
+  if (s.lower) {
+    const m = s.lower.m;
+    setData(ov.lower, m.phase);
+    setText(ov.lowerNum, String(m.n));
+    setText(ov.lowerKicker, `${m.phase === 'voor' ? 'Probleem' : 'Oplossing'} ${m.n} van ${MARKERS[m.phase].length}`);
+    setText(ov.lowerLabel, m.label);
+  }
+  setStyle(ov.lower, 'opacity', s.lowerO.toFixed(3));
+  if (s.wipe >= 0) {
+    setStyle(ov.wipe, 'visibility', 'visible');
+    setStyle(ov.wipe, 'transform', `translateX(${(-120 + 240 * s.wipe).toFixed(2)}%) skewX(-14deg)`);
+  } else setStyle(ov.wipe, 'visibility', 'hidden');
+  setStyle(ov.mark, 'opacity', s.mark ? '0.92' : '0');
+}
+function clearVideoOverlays() {
+  for (const el of [ov.intro, ov.outro, ov.title, ov.badge, ov.lower, ov.mark]) setStyle(el, 'opacity', '0');
+  setStyle(ov.wipe, 'visibility', 'hidden');
+}
+
+/* ------------------------------------------------------------------
+   State, controls, render loop
+------------------------------------------------------------------- */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 7;
+controls.enablePan = false;
+controls.maxDistance = 45;
+controls.maxPolarAngle = 1.42;
+controls.target.copy(ORBIT.target);
+controls.enabled = false;
+renderer.domElement.style.touchAction = 'pan-y';
+if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ov.hint.textContent = 'Sleep om te draaien, knijp om te zoomen';
+
+const state = { mode: 'video', playing: false, started: false, t: 0, scene: 'voor', fly: null, tabVisible: !$('#tab-klant').hidden, scrubbing: false, notes: true, measure: true, measureSet: false };
+
+function setScene(s) {
+  state.scene = s;
+  voorOnly.visible = s === 'voor';
+  naOnly.visible = s === 'na';
+  renderer.shadowMap.needsUpdate = true;
+  document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scene === s)));
+}
+function setPose(p) {
+  camera.position.copy(p.pos);
+  camera.lookAt(p.target);
+}
+
+const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const DUR = fmt(TL.duration);
+$('#poster-dur').textContent = DUR;
+$('#mail-dur').textContent = DUR;
+const scrubber = $('#scrubber');
+scrubber.max = String(Math.round(TL.duration * 100));
+
+/* Chapter colours on the timeline */
+(function buildTrack() {
+  const col = (seg) => (seg.type === 'intro' || seg.type === 'outro' ? 'var(--line)' : seg.type === 'wipe' ? 'var(--muted)' : seg.phase === 'voor' ? 'var(--voor)' : 'var(--na)');
+  const stops = TL.segs.map((s) => `${col(s)} ${(s.start / TL.duration * 100).toFixed(2)}% ${(s.end / TL.duration * 100).toFixed(2)}%`);
+  $('#track-chapters').style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
+  const chapters = [
+    ['Voor', TL.segs.find((s) => s.type === 'title' && s.phase === 'voor').start],
+    ['Na', TL.segs.find((s) => s.type === 'wipe').start],
+  ];
+  const wrap = $('#chapters');
+  chapters.forEach(([label, at]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chapter'; b.textContent = label;
+    const pct = at / TL.duration * 100;
+    b.style.left = `${pct}%`;
+    b.addEventListener('click', () => { seek(at + 0.01); if (!state.playing) play(); });
+    wrap.appendChild(b);
+  });
+})();
+
+function updateStrip() {
+  if (!state.scrubbing) scrubber.value = String(Math.round(state.t * 100));
+  $('#track-rest').style.left = `${(state.t / TL.duration * 100).toFixed(2)}%`;
+  const label = `${fmt(state.t)} / ${DUR}`;
+  const timeEl = $('#time');
+  if (timeEl.textContent !== label) { timeEl.textContent = label; scrubber.setAttribute('aria-valuetext', `${fmt(state.t)} van ${DUR}`); }
+}
+function setPlayIcon() {
+  $('#play-icon').setAttribute('href', state.playing ? '#i-pause' : '#i-play');
+  $('#btn-play').setAttribute('aria-label', state.playing ? 'Pauzeren' : 'Afspelen');
+}
+function play() {
+  const moveFocus = ov.poster.contains(document.activeElement) || ov.end.contains(document.activeElement);
+  if (state.mode !== 'video') setMode('video');
+  if (state.t >= TL.duration - 0.05) state.t = 0;
+  state.playing = true; state.started = true;
+  ov.poster.hidden = true; ov.end.hidden = true;
+  setPlayIcon();
+  if (moveFocus) $('#btn-play').focus({ preventScroll: true });
+}
+function pause() { state.playing = false; setPlayIcon(); }
+function seek(t) {
+  state.t = Math.max(0, Math.min(TL.duration, t));
+  state.started = true; ov.poster.hidden = true;
+  if (state.t < TL.duration) ov.end.hidden = true;
+  if (state.mode === 'video') renderVideoFrame();
+  updateStrip();
+}
+function onEnded() { state.playing = false; setPlayIcon(); ov.end.hidden = false; }
+
+function renderVideoFrame() {
+  if (!state.started) {
+    /* Poster: a clean view of the house with the drone, before anything plays. */
+    if (state.scene !== 'voor') setScene('voor');
+    setPose(orbitPose(0.04));
+    clearVideoOverlays();
+    updatePins(null, null);
+    return;
+  }
+  const s = sample(state.t);
+  if (s.scene !== state.scene) setScene(s.scene);
+  setPose(s.pose);
+  applyOverlays(s);
+  updatePins(s.pins, s.active);
+}
+
+function setMode(mode) {
+  if (state.mode === mode) return;
+  state.mode = mode;
+  document.querySelectorAll('.mode').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  viewer.classList.toggle('is-video', mode === 'video');
+  viewer.classList.toggle('is-explore', mode === 'explore');
+  $('#strip-video').hidden = mode !== 'video';
+  $('#strip-explore').hidden = mode !== 'explore';
+  if (mode === 'explore') {
+    pause();
+    ov.poster.hidden = true; ov.end.hidden = true;
+    clearVideoOverlays();
+    controls.target.copy(state.started ? sample(state.t).pose.target : ORBIT.target);
+    controls.enabled = true;
+    renderer.domElement.style.touchAction = 'none';
+    ov.hint.hidden = false; ov.hint.style.opacity = '1';
+    if (!state.measureSet) setToggle('#tgl-measure', 'measure', viewW >= 640);
+  } else {
+    measureLines.visible = false;
+    for (const l of mlabels) l.el.hidden = true;
+    for (const p of pins) { p.card.hidden = true; p.el.classList.remove('has-card'); }
+    controls.enabled = false;
+    state.fly = null;
+    renderer.domElement.style.touchAction = 'pan-y';
+    ov.hint.hidden = true;
+    if (!state.started) ov.poster.hidden = false;
+    if (state.t >= TL.duration - 0.01) ov.end.hidden = false;
+    renderVideoFrame();
+  }
+}
+
+function flyTo(pose) {
+  if (reduceMotion) {
+    camera.position.copy(pose.pos); controls.target.copy(pose.target); controls.update();
+    return;
+  }
+  state.fly = { from: { pos: camera.position.clone(), target: controls.target.clone() }, to: pose, t: 0, dur: 1.4 };
+  controls.enabled = false;
+}
+function stepFly(dt) {
+  const f = state.fly;
+  f.t += dt;
+  const u = Math.min(1, f.t / f.dur);
+  const p = lerpPose(f.from, f.to, u);
+  camera.position.copy(p.pos);
+  controls.target.copy(p.target);
+  camera.lookAt(p.target);
+  if (u >= 1) { state.fly = null; controls.enabled = true; controls.update(); }
+}
+let activeExplore = null;
+function focusMarker(m) {
+  setMode('explore');
+  setScene(m.phase);
+  activeExplore = m.id;
+  controls.minDistance = 1.5;
+  flyTo(markerPose(m, 0.35));
+  hideHint();
+}
+function overview() {
+  activeExplore = null;
+  controls.minDistance = 7;
+  flyTo({ pos: new V3(-11.5, 11, -14.5), target: ORBIT.target.clone() });
+}
+function hideHint() { ov.hint.style.opacity = '0'; }
+
+/* Events */
+document.querySelectorAll('.mode').forEach((b) => b.addEventListener('click', () => {
+  if (b.dataset.mode === state.mode) return;
+  setMode(b.dataset.mode);
+  if (b.dataset.mode === 'explore' && !state.fly) {
+    activeExplore = null;
+    const s = sample(state.t);
+    if (!state.started || s.intro > 0.5 || s.outro > 0.5) { setScene(state.started ? s.scene : 'voor'); overview(); }
+  }
+}));
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => { setScene(b.dataset.scene); activeExplore = null; }));
+$('#btn-overview').addEventListener('click', overview);
+/* The mouse wheel scrolls the page until the viewer has been clicked. */
+let zoomArmed = false;
+renderer.domElement.addEventListener('pointerdown', () => { zoomArmed = true; });
+viewer.addEventListener('pointerleave', () => { zoomArmed = false; });
+viewer.addEventListener('wheel', (e) => { if (state.mode === 'explore' && !zoomArmed && !e.ctrlKey) e.stopPropagation(); }, { capture: true, passive: true });
+renderer.domElement.setAttribute('role', 'img');
+renderer.domElement.setAttribute('aria-label', '3D-model van de woning met de problemen vóór en de oplossingen na het werk. De lijsten onder de viewer noemen ze allemaal.');
+function setToggle(id, key, on) {
+  state[key] = on;
+  $(id).setAttribute('aria-pressed', String(on));
+}
+$('#tgl-notes').addEventListener('click', () => setToggle('#tgl-notes', 'notes', !state.notes));
+$('#tgl-measure').addEventListener('click', () => { state.measureSet = true; setToggle('#tgl-measure', 'measure', !state.measure); });
+$('#btn-play').addEventListener('click', () => (state.playing ? pause() : play()));
+$('#btn-poster').addEventListener('click', play);
+$('#btn-replay').addEventListener('click', () => { state.t = 0; play(); });
+$('#btn-end-explore').addEventListener('click', () => { setMode('explore'); setScene('na'); overview(); $('#btn-overview').focus({ preventScroll: true }); });
+scrubber.addEventListener('input', () => { state.scrubbing = true; seek(Number(scrubber.value) / 100); });
+scrubber.addEventListener('change', () => { state.scrubbing = false; });
+scrubber.addEventListener('keydown', (e) => {
+  const d = { ArrowRight: 5, ArrowUp: 5, ArrowLeft: -5, ArrowDown: -5 }[e.key];
+  if (d) { e.preventDefault(); seek(state.t + d); }
+});
+controls.addEventListener('start', () => { hideHint(); state.fly = null; activeExplore = null; });
+window.addEventListener('pv:play', () => { state.t = 0; play(); $('#btn-play').focus({ preventScroll: true }); });
+window.addEventListener('pv:tab', (e) => {
+  state.tabVisible = e.detail === 'klant';
+  if (!state.tabVisible) pause();
+});
+
+const ro = new ResizeObserver(() => {
+  const r = viewer.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return;
+  viewW = r.width; viewH = r.height;
+  stage.setSize(viewW, viewH);
+  measureLines.material.resolution.set(viewW, viewH);
+});
+ro.observe(viewer);
+let onScreen = true;
+if ('IntersectionObserver' in window) new IntersectionObserver(([en]) => { onScreen = en.isIntersecting; }).observe(viewer);
+
+function animatePigeons(time) {
+  for (const b of pigeons) {
+    const { head, phase, speed } = b.userData;
+    const k = Math.sin(time * speed + phase);
+    head.position.z = 0.14 + Math.max(0, k) * 0.03;
+    head.rotation.x = Math.max(0, k) * 0.35;
+  }
+}
+
+/* Thumbnail for the mail mock-up, drawn once from the same scene. */
+function makeThumb() {
+  try {
+    const w = 960, h = 540;
+    const prevRatio = renderer.getPixelRatio();
+    renderer.setPixelRatio(1);
+    stage.setSize(w, h);
+    setScene('voor'); setPose(orbitPose(0.04));
+    animatePigeons(0);
+    updateDrone(0.4);
+    stage.render();
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    const grd = g.createLinearGradient(0, 0, 0, h);
+    grd.addColorStop(0, '#9DC0E0'); grd.addColorStop(0.58, '#DDE8EE'); grd.addColorStop(1, '#DDE8EE');
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+    g.drawImage(renderer.domElement, 0, 0, w, h);
+    const img = $('#mail-thumb-img');
+    img.src = c.toDataURL('image/jpeg', 0.86);
+    img.hidden = false;
+    renderer.setPixelRatio(prevRatio);
+    if (viewW > 1) stage.setSize(viewW, viewH);
+  } catch (e) { /* thumbnail is optional */ }
+}
+
+/* Close-up thumbnails for the note cards, rendered once from the same scene. */
+function makeCardShots() {
+  try {
+    const w = 392, h = 206;
+    const prevRatio = renderer.getPixelRatio();
+    renderer.setPixelRatio(1);
+    stage.setSize(w, h);
+    const keep = state.scene;
+    droneRig.visible = false;
+    for (const p of pins) {
+      setScene(p.m.phase);
+      renderer.shadowMap.needsUpdate = true;
+      setPose(markerPose(p.m, 0.7));
+      animatePigeons(1.3);
+      stage.render();
+      p.card.querySelector('img').src = renderer.domElement.toDataURL('image/jpeg', 0.84);
+    }
+    setScene(keep);
+    renderer.setPixelRatio(prevRatio);
+    if (viewW > 1) stage.setSize(viewW, viewH);
+  } catch (e) { /* cards fall back to an empty image area */ }
+}
+
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  if (!state.tabVisible || viewW < 2 || (!onScreen && !state.playing)) return;
+  if (state.mode === 'video') {
+    if (state.playing) {
+      state.t += dt;
+      if (state.t >= TL.duration) { state.t = TL.duration; onEnded(); }
+    }
+    renderVideoFrame();
+    updateStrip();
+  } else {
+    if (state.fly) stepFly(dt); else controls.update();
+    updateMeasureLabels(updatePins(state.scene, activeExplore));
+  }
+  updateDrone(state.mode === 'video' ? state.t : now / 1000);
+  stage.render();
+  /* If a desktop GPU struggles with ambient occlusion, drop it after a short measurement. */
+  if (stage.high && perf.n < 120) {
+    perf.n++;
+    if (perf.n > 30) perf.sum += dt;
+    if (perf.n === 120 && perf.sum / 90 > 0.045) stage.setAO(false);
+  }
+}
+const perf = { n: 0, sum: 0 };
+
+setScene('voor');
+makeCardShots();
+makeThumb();
+{
+  const r = viewer.getBoundingClientRect();
+  if (r.width > 1) { viewW = r.width; viewH = r.height; stage.setSize(viewW, viewH); measureLines.material.resolution.set(viewW, viewH); }
+}
+renderVideoFrame();
+requestAnimationFrame(frame);
+
+/* Small hook for automated checks; also mirrors the per-frame API the real render worker will use. */
+window.__preview = {
+  duration: TL.duration,
+  seek: (t) => { setMode('video'); pause(); seek(t); },
+  play, pause, setMode, setScene, focus: (id) => focusMarker(ALL_MARKERS.find((m) => m.id === id)),
+  stats: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, quality: QUALITY, ao: stage.high }),
+};
+$('#ov-fallback').hidden = true;
+if (!state.started && state.mode === 'video') ov.poster.hidden = false;
+window.__previewReady = true;
+</script>
