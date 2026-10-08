@@ -1,0 +1,8 @@
+node/node_modules/
+node-ktx/node_modules/
+data/
+logs/
+calib/
+*.glb
+*.obj
+*.jpg
