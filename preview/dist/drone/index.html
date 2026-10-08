@@ -270,6 +270,18 @@ button { font: inherit; color: inherit; }
   transform: translateX(-120%) skewX(-14deg);
   visibility: hidden;
 }
+/* Site photo the operator attached to the marker, shown while the camera visits it (optional per video). */
+.ov-photo {
+  top: 3.4cqw; right: 3.4cqw;
+  width: 24cqw;
+  background: #fff;
+  padding: 0.5cqw 0.5cqw 0;
+  border-radius: 0.6cqw;
+  box-shadow: 0 1cqw 3cqw rgba(0, 0, 0, .35);
+  opacity: 0;
+}
+.ov-photo img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 0.3cqw; background: #DDE6EC; }
+.ov-photo span { display: block; font-family: var(--font-mono); font-size: max(8px, 1.1cqw); letter-spacing: 0.08em; text-transform: uppercase; color: var(--v-muted); padding: 0.5cqw 0.2cqw 0.55cqw; white-space: nowrap; }
 .ov-card {
   inset: 0;
   background: var(--v-card);
@@ -385,6 +397,8 @@ button { font: inherit; color: inherit; }
 .mlabel--eave { --mk: #4D8DFF; }
 .mlabel--angle, .mlabel--area { --mk: #35D0DC; }
 .mlabel--key { --mk: #FF9A3C; background: #1B1206; }
+.mlabel--plot { --mk: #FFB020; background: #2A1E05; }
+.pin__cam { width: 13px; height: 13px; margin-left: 6px; vertical-align: -2px; color: var(--v-muted); }
 .card {
   position: absolute; left: 0; top: 0;
   width: 196px;
@@ -405,7 +419,7 @@ button { font: inherit; color: inherit; }
 .card--voor .card__dot { background: var(--v-voor); border-radius: 50%; }
 .card--na .card__dot { background: var(--v-na); border-radius: 5px; }
 .card__img { display: block; width: 100%; aspect-ratio: 1.9; object-fit: cover; border-radius: 7px; background: #DDE6EC; }
-.card__note { margin-top: 7px; font-size: 11.5px; line-height: 1.35; color: #56645B; }
+.card__note { display: block; margin-top: 7px; font-size: 11.5px; line-height: 1.35; color: #56645B; }
 .cards { position: absolute; inset: 0; pointer-events: none; }
 .viewer.is-video .anno, .viewer.is-video .cards { display: none; }
 .card.is-below::after { bottom: auto; top: -6px; box-shadow: -2px -2px 4px rgba(0, 0, 0, .06); }
@@ -424,7 +438,7 @@ button { font: inherit; color: inherit; }
 .tgl::before { content: ""; width: 9px; height: 9px; border-radius: 3px; border: 2px solid currentColor; }
 .tgl[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
 .tgl[aria-pressed="true"]::before { background: currentColor; }
-.phase-tag { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+.phase-tag { white-space: nowrap; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 @media (max-width: 560px) {
   .card { width: 168px; padding: 7px 7px 8px; }
   .card__note { display: none; }
@@ -469,8 +483,55 @@ button { font: inherit; color: inherit; }
 }
 .seg button[data-scene="voor"][aria-pressed="true"] { background: var(--voor); color: var(--on-voor); }
 .seg button[data-scene="na"][aria-pressed="true"] { background: var(--na); color: var(--on-na); }
-.strip__hint { color: var(--muted); font-size: 0.85rem; flex: 1 1 180px; min-width: 0; }
+.strip__hint { color: var(--muted); font-size: 0.85rem; flex: 1 1 130px; min-width: 0; }
 .text-btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+
+/* Marker sheet: opens under the viewer when a pin is clicked, with the operator's site photos. */
+.sheet {
+  position: relative;
+  border-top: 1px solid var(--line);
+  padding: 14px 64px 16px 14px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 20px; align-items: start;
+}
+.sheet__head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.sheet__kicker { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.sheet__title { font-size: 1.12rem; }
+.sheet__note { margin-top: 9px; max-width: 56ch; }
+.sheet__meta { margin-top: 7px; font-size: 0.82rem; color: var(--muted); max-width: 56ch; }
+.sheet__photos { display: flex; gap: 8px; }
+.photo-btn {
+  position: relative; width: 168px; aspect-ratio: 4 / 3; flex: none;
+  padding: 0; border: 0; border-radius: 10px; overflow: hidden; cursor: zoom-in;
+  background: var(--surface-2);
+}
+.photo-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-btn img:not([src]) { visibility: hidden; }
+.photo-btn__n { position: absolute; left: 6px; bottom: 6px; background: rgba(0, 0, 0, .6); color: #fff; font-family: var(--font-mono); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; }
+.sheet__close { position: absolute; top: 12px; right: 12px; }
+@media (max-width: 700px) {
+  .sheet { grid-template-columns: minmax(0, 1fr); padding-right: 14px; }
+  .sheet__head { padding-right: 50px; }
+  .photo-btn { flex: 1 1 0; width: auto; }
+}
+
+.lightbox {
+  padding: 0; border: 0; background: transparent; color: #fff;
+  width: min(92vw, 860px); max-width: none; max-height: 94vh; overflow: visible;
+}
+.lightbox::backdrop { background: rgba(6, 10, 8, .86); }
+.lightbox figure { margin: 0; position: relative; }
+.lightbox img { display: block; width: 100%; max-height: calc(94vh - 64px); object-fit: contain; border-radius: 10px; background: #0d120f; }
+.lightbox figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 10px 2px 0; font-size: 0.92rem; }
+.lightbox figcaption .mono { color: #B9C4BC; font-size: 0.8rem; }
+.lb-btn {
+  position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(255, 255, 255, .94); color: #13201A; display: grid; place-items: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+}
+.lb-btn svg { width: 18px; height: 18px; }
+.lb-close { top: -16px; right: -12px; }
+.lb-prev { left: 10px; top: calc(50% - 50px); }
+.lb-next { right: 10px; top: calc(50% - 50px); }
 
 /* Findings */
 .summary { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 26px 14px; }
@@ -493,6 +554,9 @@ button { font: inherit; color: inherit; }
 .badge--voor { background: var(--voor); color: var(--on-voor); border-radius: 50%; }
 .badge--na { background: var(--na); color: var(--on-na); border-radius: 7px; }
 .item__label { flex: 1; min-width: 0; font-weight: 600; }
+.item__thumb { width: 52px; height: 39px; flex: none; border-radius: 6px; overflow: hidden; background: var(--surface-2); }
+.item__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.item__thumb img:not([src]) { visibility: hidden; }
 .item__go { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
 
 .contact {
@@ -606,6 +670,10 @@ button { font: inherit; color: inherit; }
   </symbol>
   <symbol id="i-play" viewBox="0 0 16 16"><path d="M3.5 1.8v12.4a.8.8 0 0 0 1.2.7l10-6.2a.8.8 0 0 0 0-1.4l-10-6.2a.8.8 0 0 0-1.2.7Z" fill="currentColor"/></symbol>
   <symbol id="i-pause" viewBox="0 0 16 16"><rect x="3" y="2" width="3.6" height="12" rx="1" fill="currentColor"/><rect x="9.4" y="2" width="3.6" height="12" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 16 16"><path d="M2.5 4.5h2.2l1-1.6h4.6l1 1.6h2.2a1 1 0 0 1 1 1v6.6a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="8" cy="8.6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="i-close" viewBox="0 0 16 16"><path d="m3.5 3.5 9 9m0-9-9 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-next" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="currentColor" opacity=".15"/><path d="m6 10.3 2.6 2.6L14.2 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 
@@ -644,7 +712,7 @@ button { font: inherit; color: inherit; }
       </div>
     </div>
 
-    <p class="pv-note"><b>Let op, voorbeeld:</b> dit huis en de tuin zijn met de computer nagemaakt. In het echte systeem ziet de klant de dronescan van de eigen woning, die eruitziet als een 3D-foto.</p>
+    <p class="pv-note"><b>Let op, voorbeeld:</b> dit huis, de tuin en de buurt zijn met de computer nagemaakt. In het echte systeem ziet de klant de dronescan van het eigen perceel, die eruitziet als een 3D-foto, en is alles buiten de perceelgrens weggeknipt.</p>
     <div class="modes" role="group" aria-label="Weergave">
       <button class="mode" type="button" id="m-video" aria-pressed="true" data-mode="video">Video</button>
       <button class="mode" type="button" id="m-explore" aria-pressed="false" data-mode="explore">3D-model</button>
@@ -662,6 +730,7 @@ button { font: inherit; color: inherit; }
           <span class="ov-lower__txt"><span class="ov-lower__kicker" id="ov-lower-kicker"></span><span class="ov-lower__label" id="ov-lower-label"></span></span>
         </div>
         <div class="ov ov-title" id="ov-title"><strong id="ov-title-big"></strong><span id="ov-title-sub"></span></div>
+        <div class="ov ov-photo" id="ov-photo" aria-hidden="true"><img id="ov-photo-img" alt=""><span>Foto ter plaatse</span></div>
         <div class="ov ov-wipe" id="ov-wipe"></div>
         <div class="ov ov-card" id="ov-intro" style="opacity:1">
           <svg aria-hidden="true"><use href="#logo"/></svg>
@@ -718,11 +787,39 @@ button { font: inherit; color: inherit; }
         <div class="toggles" role="group" aria-label="Wat er op het model staat">
           <button type="button" class="tgl" id="tgl-notes" aria-pressed="true">Notities <span class="phase-tag">fase 3</span></button>
           <button type="button" class="tgl" id="tgl-measure" aria-pressed="true">Maten <span class="phase-tag">fase 2</span></button>
+          <button type="button" class="tgl" id="tgl-plot" aria-pressed="false">Perceelgrens <span class="phase-tag">medewerker</span></button>
         </div>
-        <span class="strip__hint">Beide scans staan op dezelfde plek. Wissel om te zien wat er veranderd is.</span>
+        <span class="strip__hint">Wissel Voor en Na. Klik op een markering voor de foto's.</span>
         <button class="text-btn" id="btn-overview" type="button">Overzicht</button>
       </div>
+      <section class="sheet" id="sheet" aria-labelledby="sheet-title" hidden>
+        <div>
+          <div class="sheet__head">
+            <span class="badge" id="sheet-badge"></span>
+            <div>
+              <div class="sheet__kicker" id="sheet-kicker"></div>
+              <h3 class="sheet__title" id="sheet-title"></h3>
+            </div>
+          </div>
+          <p class="sheet__note"><span id="sheet-note"></span> <span class="phase-tag">notitie · fase 3</span></p>
+          <p class="sheet__meta">Foto's van onze medewerker ter plaatse. Locatie- en cameragegevens zijn eruit gehaald.</p>
+        </div>
+        <div class="sheet__photos">
+          <button class="photo-btn" type="button" data-k="0"><img alt=""><span class="photo-btn__n">1/2</span></button>
+          <button class="photo-btn" type="button" data-k="1"><img alt=""><span class="photo-btn__n">2/2</span></button>
+        </div>
+        <button class="icon-btn sheet__close" id="sheet-close" type="button" aria-label="Foto's sluiten"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+      </section>
     </div>
+    <dialog class="lightbox" id="lightbox" aria-labelledby="lb-title">
+      <figure>
+        <img id="lb-img" alt="">
+        <figcaption><span id="lb-title"></span><span class="mono" id="lb-count"></span></figcaption>
+        <button class="lb-btn lb-prev" id="lb-prev" type="button" aria-label="Vorige foto"><svg aria-hidden="true"><use href="#i-prev"/></svg></button>
+        <button class="lb-btn lb-next" id="lb-next" type="button" aria-label="Volgende foto"><svg aria-hidden="true"><use href="#i-next"/></svg></button>
+      </figure>
+      <button class="lb-btn lb-close" id="lb-close" type="button" aria-label="Sluiten"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+    </dialog>
 
     <div class="summary">
       <span class="pill pill--voor" id="pill-voor">6 problemen gevonden</span>
@@ -741,7 +838,7 @@ button { font: inherit; color: inherit; }
 
     <div class="contact">
       <div>
-        <h2>Vragen over uw dak?</h2>
+        <h2>Vragen over het werk?</h2>
         <p>Bel of mail ons, we helpen u graag.</p>
       </div>
       <div class="contact__lines">
@@ -800,13 +897,19 @@ button { font: inherit; color: inherit; }
       <li class="step" data-tone="voor">
         <div>
           <h3>Inspectie en eerste scan <span class="who">Medewerker</span></h3>
-          <p>Dronevlucht met RTK, verwerken in DJI Terra zoals nu. Het 3D-model uploaden bij een nieuwe klus en de klant uit Odoo kiezen.</p>
+          <p>Dronevlucht met RTK over het hele perceel: dak, oprit en tuin. Verwerken in DJI Terra zoals nu. Het 3D-model uploaden bij een nieuwe klus en de klant uit Odoo kiezen.</p>
+        </div>
+      </li>
+      <li class="step" data-tone="voor">
+        <div>
+          <h3>Perceel afbakenen <span class="who">Medewerker</span></h3>
+          <p>Het systeem stelt de perceelgrens uit het Kadaster voor. De medewerker controleert hem en schuift hem zo nodig recht, of trekt zelf een kader. Alles daarbuiten, zoals tuinen van de buren, auto's op straat en voorbijgangers, wordt uit de scan geknipt en komt niet in de video of op de klantpagina. In dit voorbeeld blijft de buurt staan; zet in het 3D-model "Perceelgrens" aan om te zien waar de grens loopt.</p>
         </div>
       </li>
       <li class="step" data-tone="voor">
         <div>
           <h3>Problemen markeren <span class="who">Medewerker</span></h3>
-          <p>Rode markeringen op het 3D-model, met vaste labels zoals "Nestplaats duiven", "Invliegopening" of "Wespennest". Eigen tekst mag ook.</p>
+          <p>Rode markeringen op het dak of in de tuin, met vaste labels zoals "Nestplaats duiven", "Rattenholen" of "Mierennest". Eigen tekst mag ook. Foto's van de telefoon gaan mee met de markering, want een rattenhol of een nest in een boom is op een scan vaak nauwelijks te zien. De klant ziet ze door op de markering te klikken; locatie- en cameragegevens worden er eerst uit gehaald.</p>
         </div>
       </li>
       <li class="step" data-tone="na">
@@ -818,7 +921,7 @@ button { font: inherit; color: inherit; }
       <li class="step" data-tone="na">
         <div>
           <h3>Oplossingen markeren en video maken <span class="who">Medewerker + systeem</span></h3>
-          <p>Groene markeringen, bijvoorbeeld "Gaas rond panelen geplaatst". Een rode markering is met één klik over te nemen in de tweede scan. Daarna op "Video maken" klikken. De video toont een rondvlucht vóór het werk, de problemen, een rondvlucht na het werk en de oplossingen, met jullie logo erin. In de video en op de klantpagina staat alleen de plaats, nooit de straat of het huisnummer.</p>
+          <p>Groene markeringen, bijvoorbeeld "Gaas rond panelen geplaatst" of "Lokdoos geplaatst", ook weer met foto's. Een rode markering is met één klik over te nemen in de tweede scan. Daarna op "Video maken" klikken. De video vliegt eerst rond over het hele perceel vóór het werk en langs de problemen, daarna rond na het werk en langs de oplossingen, met jullie logo erin. Komt de camera bij een markering, dan kan de foto even in beeld komen. In de video en op de klantpagina staat alleen de plaats, nooit de straat of het huisnummer.</p>
         </div>
       </li>
       <li class="step">
@@ -843,7 +946,8 @@ button { font: inherit; color: inherit; }
         <h2>Doet het nieuwe systeem</h2>
         <ul>
           <li>Scans opslaan en tonen in 3D</li>
-          <li>Markeringen, video en klantpagina</li>
+          <li>Perceelgrens: alles buiten het perceel eruit voordat er iets gedeeld wordt</li>
+          <li>Markeringen met foto's, video en klantpagina</li>
           <li>Link en interne notitie bij de factuur</li>
           <li>Link uitzetten wanneer jullie willen, met een einddatum per link</li>
           <li>Zien of en hoe vaak de klant de pagina heeft bekeken, zonder gegevens van de kijker op te slaan</li>
@@ -864,7 +968,7 @@ button { font: inherit; color: inherit; }
       <h2>Stap voor stap uitbreiden</h2>
       <div class="phase">
         <div class="phase__tag"><b>Fase 1</b></div>
-        <div><h3>Voor/na-video en klantpagina <span class="status status--now">Eerst bouwen</span></h3><p>Alles op deze pagina: scans uploaden, markeren, video maken, klantpagina en de knop in de factuurmail.</p></div>
+        <div><h3>Voor/na-video en klantpagina <span class="status status--now">Eerst bouwen</span></h3><p>Alles op deze pagina: scans van het hele perceel uploaden, perceel afbakenen, markeren met foto's, video maken, klantpagina en de knop in de factuurmail.</p></div>
       </div>
       <div class="phase">
         <div class="phase__tag"><b>Fase 2</b></div>
@@ -872,7 +976,7 @@ button { font: inherit; color: inherit; }
       </div>
       <div class="phase">
         <div class="phase__tag"><b>Fase 3</b></div>
-        <div><h3>Notities, foto's en status <span class="status status--later">Later</span></h3><p>Foto's en notities bij markeringen, gebruik op telefoon en tablet op locatie, status van de klus volgt Odoo vanzelf, één pagina voor de klant met inspectie, offerte en resultaat samen.</p></div>
+        <div><h3>Notities en status <span class="status status--later">Later</span></h3><p>Notities bij markeringen, gebruik op telefoon en tablet op locatie, status van de klus volgt Odoo vanzelf, één pagina voor de klant met inspectie, offerte en resultaat samen.</p></div>
       </div>
       <div class="phase">
         <div class="phase__tag"><b>Fase 4</b></div>
@@ -923,7 +1027,7 @@ window.PV_MARKERS = {
     var ul = document.getElementById('list-' + ph);
     window.PV_MARKERS[ph].forEach(function (m, i) {
       var li = document.createElement('li');
-      li.innerHTML = '<button class="item" type="button" data-marker="' + m.id + '"><span class="badge badge--' + ph + '">' + (i + 1) + '</span><span class="item__label"></span><span class="item__go">Bekijk in 3D</span></button>';
+      li.innerHTML = '<button class="item" type="button" data-marker="' + m.id + '"><span class="badge badge--' + ph + '">' + (i + 1) + '</span><span class="item__thumb"><img alt=""></span><span class="item__label"></span><span class="item__go">Bekijk in 3D</span></button>';
       li.querySelector('.item__label').textContent = m.label;
       ul.appendChild(li);
     });
@@ -5057,20 +5161,76 @@ for (const ph of ['voor', 'na']) MARKERS[ph].forEach((m, i) => {
   const txt = window.PV_MARKERS[ph].find((x) => x.id === m.id);
   m.phase = ph; m.n = i + 1; m.view.normalize();
   m.label = txt.label; m.note = txt.note;
+  m.photos = [null, null];
 });
 const ALL_MARKERS = [...MARKERS.voor, ...MARKERS.na];
+
+/* ------------------------------------------------------------------
+   Property boundary (x, z on the ground, metres). The real system cuts
+   everything outside it from what the customer gets; this demo keeps the
+   neighbourhood and only shows the boundary on request ("Perceelgrens").
+------------------------------------------------------------------- */
+const CROP = (() => {
+  const poly = [[-11.35, -17.3], [9.35, -17.3], [9.5, 0.5], [9.35, 16.3], [-11.35, 16.3], [-11.5, -0.5]];
+  const cx = poly.reduce((a, p) => a + p[0], 0) / poly.length, cz = poly.reduce((a, p) => a + p[1], 0) / poly.length;
+  /* One inward half-plane per edge, packed as (nx, nz, c): inside where nx * x + nz * z + c > 0. */
+  const planes = poly.map((a, i) => {
+    const b = poly[(i + 1) % poly.length];
+    let nx = a[1] - b[1], nz = b[0] - a[0];
+    const l = Math.hypot(nx, nz); nx /= l; nz /= l;
+    if (nx * (cx - a[0]) + nz * (cz - a[1]) < 0) { nx = -nx; nz = -nz; }
+    return new V3(nx, nz, -(nx * a[0] + nz * a[1]));
+  });
+  let area = 0;
+  poly.forEach((a, i) => { const b = poly[(i + 1) % poly.length]; area += a[0] * b[1] - b[0] * a[1]; });
+  return { poly, planes, centre: new V3(cx, 0, cz), area: Math.abs(area) / 2 };
+})();
 
 /* ------------------------------------------------------------------
    Camera path. One deterministic function of time: the preview here and
    the server-side render in the real system both sample it per frame.
 ------------------------------------------------------------------- */
-const ORBIT = { target: new V3(0, 6.6, 0), radius: 20, height: 11, a0: -2.2 };
-/* Opening shot: high over the street, then down onto the house. */
-const EST = { pos: new V3(-30, 36, -58), target: new V3(0, 3, 0) };
+const FOV = 38;
+/* The default orbit frames the whole plot (boundary, house, garden trees) at every angle of a 16:9 frame:
+   per heading, the smallest distance that keeps every point inside the frame, then smoothed. */
+const ORBIT = (() => {
+  const target = new V3(CROP.centre.x, 2.4, CROP.centre.z);
+  const pts = [];
+  for (const [x, z] of CROP.poly) pts.push(new V3(x, 0, z), new V3(x, 2, z));
+  for (const x of [-5.5, 5.5]) for (const z of [-4.6, 4.6]) pts.push(new V3(x, 6.2, z));
+  pts.push(new V3(-5.5, RIDGE_TOP, 0), new V3(5.5, RIDGE_TOP, 0), new V3(-8.5, 7.5, 9), new V3(7.2, 6.5, -14));
+  const pitch = 0.58, N = 96;
+  const tanV = Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * 0.92, tanH = tanV * 16 / 9;
+  const up = new V3(0, 1, 0), f = new V3(), r = new V3(), u = new V3(), q = new V3();
+  const need = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2;
+    f.set(-Math.cos(a) * Math.cos(pitch), -Math.sin(pitch), -Math.sin(a) * Math.cos(pitch));
+    r.crossVectors(f, up).normalize(); u.crossVectors(r, f);
+    let d = 0;
+    for (const p of pts) {
+      q.copy(p).sub(target);
+      const z = q.dot(f);
+      d = Math.max(d, Math.abs(q.dot(r)) / tanH - z, Math.abs(q.dot(u)) / tanV - z);
+    }
+    need.push(d);
+  }
+  /* Running max, then a moving average: smooth dolly, never closer than needed. */
+  const at = (arr, i) => arr[((i % N) + N) % N];
+  const mx = need.map((_, i) => { let m = 0; for (let k = -3; k <= 3; k++) m = Math.max(m, at(need, i + k)); return m; });
+  const dist = mx.map((_, i) => { let a = 0; for (let k = -3; k <= 3; k++) a += at(mx, i + k); return a / 7; });
+  return { target, pitch, dist, N, a0: -2.2 };
+})();
 function orbitPose(u) {
   const a = ORBIT.a0 + Math.PI * 2 * u;
-  return { pos: new V3(Math.cos(a) * ORBIT.radius, ORBIT.height, Math.sin(a) * ORBIT.radius), target: ORBIT.target.clone() };
+  const x = (((a / (Math.PI * 2)) % 1) + 1) % 1 * ORBIT.N, i = Math.floor(x);
+  const d = lerp(ORBIT.dist[i % ORBIT.N], ORBIT.dist[(i + 1) % ORBIT.N], x - i);
+  const c = Math.cos(ORBIT.pitch);
+  return { pos: new V3(Math.cos(a) * c, Math.sin(ORBIT.pitch), Math.sin(a) * c).multiplyScalar(d).add(ORBIT.target), target: ORBIT.target.clone() };
 }
+/* Opening shot: high over the street, then down to the start of the orbit. */
+const EST = { pos: new V3(-50, 68, -104), target: new V3(-1, 0, -6) };
+const posterPose = () => orbitPose(0.04);
 function markerPose(m, k = 0) {
   const d = m.dist * (1 - 0.1 * k);
   return { pos: m.pos.clone().addScaledVector(m.view, d), target: m.pos.clone() };
@@ -5101,8 +5261,8 @@ function buildTimeline() {
     add('title', phase === 'voor' ? 3 : 1.6, { phase });
     add('orbit', 7, { phase });
     MARKERS[phase].forEach((m, i) => {
-      add('move', 1.4, { phase, m, i, prev: MARKERS[phase][i - 1] || null });
-      add('hold', 1.7, { phase, m, i });
+      add('move', i === 0 ? 2.2 : 1.4, { phase, m, i, prev: MARKERS[phase][i - 1] || null });
+      add('hold', 2.0, { phase, m, i });
     });
   }
   add('outro', 3.8);
@@ -5115,7 +5275,7 @@ function sample(time) {
   const t = Math.max(0, Math.min(TL.duration - 1e-6, time));
   const seg = TL.segs.find((s) => t >= s.start && t < s.end) || TL.segs[TL.segs.length - 1];
   const u = (t - seg.start) / seg.dur;
-  const o = { t, scene: 'voor', pose: null, intro: 0, outro: 0, title: null, titleO: 0, badge: null, lower: null, lowerO: 0, wipe: -1, active: null, pins: null, mark: false };
+  const o = { t, scene: 'voor', pose: null, intro: 0, outro: 0, title: null, titleO: 0, badge: null, lower: null, lowerO: 0, photo: null, photoO: 0, wipe: -1, active: null, pins: null, mark: false };
   switch (seg.type) {
     case 'intro':
       o.pose = { pos: EST.pos.clone(), target: EST.target.clone() };
@@ -5138,6 +5298,7 @@ function sample(time) {
       const from = seg.prev ? markerPose(seg.prev, 1) : orbitPose(1);
       o.scene = seg.phase; o.pose = lerpPose(from, markerPose(seg.m, 0), u);
       o.lower = seg; o.lowerO = clamp01((u - 0.55) / 0.35);
+      o.photo = seg.m; o.photoO = clamp01((u - 0.7) / 0.3);
       o.active = u > 0.45 ? seg.m.id : null;
       o.badge = seg.phase; o.pins = seg.phase; o.mark = true;
       break;
@@ -5145,6 +5306,7 @@ function sample(time) {
     case 'hold':
       o.scene = seg.phase; o.pose = markerPose(seg.m, easeOutCubic(u));
       o.lower = seg; o.lowerO = u > 0.9 ? 1 - (u - 0.9) / 0.1 : 1;
+      o.photo = seg.m; o.photoO = u > 0.86 ? 1 - (u - 0.86) / 0.14 : 1;
       o.active = seg.m.id; o.badge = seg.phase; o.pins = seg.phase; o.mark = true;
       break;
     case 'wipe':
@@ -5441,6 +5603,7 @@ const drone = (() => {
     return d;
   } catch (e) { console.error('drone', e); return null; }
 })();
+let dronePoster = null;
 function updateDrone(time) {
   if (!drone) return;
   const show = state.mode === 'explore' || !state.started;
@@ -5451,7 +5614,13 @@ function updateDrone(time) {
     droneRig.position.set(Math.cos(a) * 8.5, 13.4, Math.sin(a) * 8.5);
     droneRig.rotation.y = -a;
   } else {
-    droneRig.position.set(-2.3, 10.4, -12.2);
+    /* Poster: in front of the camera, up and to the left of the house. */
+    if (!dronePoster) {
+      const P = posterPose(), f = P.target.clone().sub(P.pos).normalize();
+      const r = new V3().crossVectors(f, new V3(0, 1, 0)).normalize();
+      dronePoster = P.pos.clone().addScaledVector(f, 14).addScaledVector(r, -2.4).add(new V3(0, 1.3, 0));
+    }
+    droneRig.position.copy(dronePoster);
     droneRig.rotation.y = 0.19;
   }
   DroneKit.animateDrone(drone, time);
@@ -5916,6 +6085,83 @@ function decal(tex, w, h, x, y, z, rotY = 0, flat = true) {
 })();
 
 /* ------------------------------------------------------------------
+   Boundary view for the operator: everything outside the plot fades to a
+   pale grey (a few lines added to each material's own shader), plus the
+   boundary line, a low curtain and corner posts. Off by default.
+------------------------------------------------------------------- */
+const cropU = { uCropDim: { value: 0 }, uCropPl: { value: CROP.planes } };
+function patchCrop(m) {
+  if (m.userData.cropPatched || m.isShaderMaterial) return;
+  m.userData.cropPatched = true;
+  const prev = m.onBeforeCompile;
+  const key = m.customProgramCacheKey();
+  const n = CROP.planes.length;
+  m.onBeforeCompile = function (sh, r) {
+    prev.call(this, sh, r);
+    if (!sh.vertexShader.includes('#include <project_vertex>') || !sh.fragmentShader.includes('#include <dithering_fragment>')) return;
+    sh.uniforms.uCropDim = cropU.uCropDim;
+    sh.uniforms.uCropPl = cropU.uCropPl;
+    sh.vertexShader = 'varying vec3 vCropW;\n' + sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
+	{
+		vec4 cropP = vec4( transformed, 1.0 );
+		#ifdef USE_INSTANCING
+		cropP = instanceMatrix * cropP;
+		#endif
+		vCropW = ( modelMatrix * cropP ).xyz;
+	}`);
+    sh.fragmentShader = `uniform float uCropDim;\nuniform vec3 uCropPl[ ${n} ];\nvarying vec3 vCropW;\n` + sh.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
+	if ( uCropDim > 0.0 ) {
+		float cropD = -1e4;
+		for ( int i = 0; i < ${n}; i ++ ) cropD = max( cropD, - ( uCropPl[ i ].x * vCropW.x + uCropPl[ i ].y * vCropW.z + uCropPl[ i ].z ) );
+		float cropK = uCropDim * smoothstep( 0.0, 0.45, cropD );
+		float cropL = dot( gl_FragColor.rgb, vec3( 0.299, 0.587, 0.114 ) );
+		gl_FragColor.rgb = mix( gl_FragColor.rgb, mix( vec3( cropL ), vec3( 0.92, 0.93, 0.94 ), 0.5 ), cropK * 0.82 );
+	}`);
+  };
+  /* The key must differ from the unpatched program and keep the material's own key (car paint, foliage). */
+  m.customProgramCacheKey = () => key + '|crop1';
+}
+world.traverse((o) => { if (o.material) for (const m of [].concat(o.material)) patchCrop(m); });
+
+const plotGroup = new THREE.Group();
+plotGroup.visible = false;
+scene.add(plotGroup);
+const plotLine = (() => {
+  const pos = [];
+  CROP.poly.forEach((a, i) => {
+    const b = CROP.poly[(i + 1) % CROP.poly.length];
+    pos.push(a[0], 0.07, a[1], b[0], 0.07, b[1]);
+  });
+  const geo = new LineSegmentsGeometry();
+  geo.setPositions(pos);
+  const line = new LineSegments2(geo, new LineMaterial({ color: 0xffb020, linewidth: 3, worldUnits: false, transparent: true, depthWrite: false }));
+  line.userData.noAO = true; line.renderOrder = 4;
+  plotGroup.add(line);
+  return line;
+})();
+(function addCurtain() {
+  const tex = canvasTex(4, 64, (g, w, h) => {
+    const grd = g.createLinearGradient(0, 0, 0, h);
+    grd.addColorStop(0, 'rgba(255,255,255,0)'); grd.addColorStop(0.7, 'rgba(255,255,255,0.22)'); grd.addColorStop(1, 'rgba(255,255,255,0.5)');
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+  }, { repeat: false });
+  const matC = new THREE.MeshBasicMaterial({ map: tex, color: 0xffb020, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+  const matP = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffb020, emissiveIntensity: 0.35, roughness: 0.5 });
+  const post = new THREE.CylinderGeometry(0.07, 0.07, 1.6, 10);
+  CROP.poly.forEach((a, i) => {
+    const b = CROP.poly[(i + 1) % CROP.poly.length];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(len, 2.2), matC);
+    wall.position.set((a[0] + b[0]) / 2, 1.1, (a[1] + b[1]) / 2);
+    wall.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]);
+    wall.userData.noAO = true; wall.renderOrder = 3;
+    const p = new THREE.Mesh(post, matP);
+    p.position.set(a[0], 0.8, a[1]);
+    plotGroup.add(wall, p);
+  });
+})();
+
+/* ------------------------------------------------------------------
    Measurements (explore mode, "Maten"): roof edges as coloured lines with
    labels. Values come from the same geometry, like the RTK model would.
 ------------------------------------------------------------------- */
@@ -5972,7 +6218,7 @@ const pins = ALL_MARKERS.map((m) => {
   el.className = `pin pin--${m.phase}`;
   el.hidden = true;
   const kind = m.phase === 'voor' ? 'Probleem' : 'Oplossing';
-  el.innerHTML = `<span class="pin__dot"></span><span class="pin__stem"></span><button class="pin__btn" type="button" aria-label="${kind} ${m.n}: ${m.label}"><span class="pin__num">${m.n}</span><span class="pin__label">${m.label}</span></button>`;
+  el.innerHTML = `<span class="pin__dot"></span><span class="pin__stem"></span><button class="pin__btn" type="button" aria-label="${kind} ${m.n}: ${m.label}, met foto's"><span class="pin__num">${m.n}</span><span class="pin__label">${m.label}<svg class="pin__cam" aria-hidden="true"><use href="#i-cam"/></svg></span></button>`;
   el.querySelector('button').addEventListener('click', () => focusMarker(m));
   pinsEl.appendChild(el);
   const card = document.createElement('button');
@@ -5986,7 +6232,8 @@ const pins = ALL_MARKERS.map((m) => {
   return { m, el, card, btn: el.querySelector('button'), last: '', cardLast: '' };
 });
 const annoEl = $('#anno');
-const mlabels = MEASURE.labels.map((l) => {
+const PLOT_LABEL = { text: `Perceelgrens · ${fmtNum(CROP.area, 0)} m²`, at: new V3(-5.5, 0.5, CROP.poly[0][1]), kind: 'plot', group: 'plot' };
+const mlabels = [...MEASURE.labels, PLOT_LABEL].map((l) => {
   const el = document.createElement('div');
   el.className = `mlabel mlabel--${l.kind}`;
   el.textContent = l.text;
@@ -6004,7 +6251,7 @@ const tmp = new V3(), dir = new V3();
 let viewW = 0, viewH = 0;
 const measure = document.createElement('canvas').getContext('2d');
 measure.font = '600 13px Figtree, system-ui, sans-serif';
-for (const p of pins) p.labelW = measure.measureText(p.m.label).width + 20;
+for (const p of pins) p.labelW = measure.measureText(p.m.label).width + 39;
 function updatePins(showPhase, activeId) {
   const shown = [];
   for (const p of pins) {
@@ -6094,10 +6341,10 @@ function updatePins(showPhase, activeId) {
 }
 const mlabelW = new Map();
 function updateMeasureLabels(boxes) {
-  const on = state.mode === 'explore' && state.measure;
-  measureLines.visible = on;
+  const on = { measure: state.mode === 'explore' && state.measure, plot: state.mode === 'explore' && state.plot };
+  measureLines.visible = on.measure;
   for (const l of mlabels) {
-    if (!on) { if (!l.el.hidden) l.el.hidden = true; continue; }
+    if (!on[l.group || 'measure']) { if (!l.el.hidden) l.el.hidden = true; continue; }
     tmp.copy(l.at).project(camera);
     let ok = tmp.z <= 1 && Math.abs(tmp.x) < 1.05 && Math.abs(tmp.y) < 1.05;
     if (ok) {
@@ -6129,6 +6376,7 @@ const ov = {
   intro: $('#ov-intro'), outro: $('#ov-outro'), title: $('#ov-title'), titleBig: $('#ov-title-big'), titleSub: $('#ov-title-sub'),
   badge: $('#ov-badge'), lower: $('#ov-lower'), lowerNum: $('#ov-lower-num'), lowerKicker: $('#ov-lower-kicker'), lowerLabel: $('#ov-lower-label'),
   wipe: $('#ov-wipe'), mark: $('#ov-mark'), poster: $('#ov-poster'), end: $('#ov-end'), hint: $('#ov-hint'),
+  photo: $('#ov-photo'), photoImg: $('#ov-photo-img'),
 };
 const cache = new Map();
 function setStyle(el, key, val) {
@@ -6158,6 +6406,9 @@ function applyOverlays(s) {
     setText(ov.lowerLabel, m.label);
   }
   setStyle(ov.lower, 'opacity', s.lowerO.toFixed(3));
+  const src = s.photo && s.photo.photos[0];
+  if (src && ov.photoImg.getAttribute('src') !== src) ov.photoImg.src = src;
+  setStyle(ov.photo, 'opacity', src ? s.photoO.toFixed(3) : '0');
   if (s.wipe >= 0) {
     setStyle(ov.wipe, 'visibility', 'visible');
     setStyle(ov.wipe, 'transform', `translateX(${(-120 + 240 * s.wipe).toFixed(2)}%) skewX(-14deg)`);
@@ -6165,7 +6416,7 @@ function applyOverlays(s) {
   setStyle(ov.mark, 'opacity', s.mark ? '0.92' : '0');
 }
 function clearVideoOverlays() {
-  for (const el of [ov.intro, ov.outro, ov.title, ov.badge, ov.lower, ov.mark]) setStyle(el, 'opacity', '0');
+  for (const el of [ov.intro, ov.outro, ov.title, ov.badge, ov.lower, ov.mark, ov.photo]) setStyle(el, 'opacity', '0');
   setStyle(ov.wipe, 'visibility', 'hidden');
 }
 
@@ -6177,14 +6428,14 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.minDistance = 7;
 controls.enablePan = false;
-controls.maxDistance = 45;
+controls.maxDistance = 85;
 controls.maxPolarAngle = 1.42;
 controls.target.copy(ORBIT.target);
 controls.enabled = false;
 renderer.domElement.style.touchAction = 'pan-y';
 if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ov.hint.textContent = 'Sleep om te draaien, knijp om te zoomen';
 
-const state = { mode: 'video', playing: false, started: false, t: 0, scene: 'voor', fly: null, tabVisible: !$('#tab-klant').hidden, scrubbing: false, notes: true, measure: true, measureSet: false };
+const state = { mode: 'video', playing: false, started: false, t: 0, scene: 'voor', fly: null, tabVisible: !$('#tab-klant').hidden, scrubbing: false, notes: true, measure: true, measureSet: false, plot: false, sheet: null };
 
 function setScene(s) {
   state.scene = s;
@@ -6259,7 +6510,7 @@ function renderVideoFrame() {
   if (!state.started) {
     /* Poster: a clean view of the house with the drone, before anything plays. */
     if (state.scene !== 'voor') setScene('voor');
-    setPose(orbitPose(0.04));
+    setPose(posterPose());
     clearVideoOverlays();
     updatePins(null, null);
     return;
@@ -6289,6 +6540,7 @@ function setMode(mode) {
     ov.hint.hidden = false; ov.hint.style.opacity = '1';
     if (!state.measureSet) setToggle('#tgl-measure', 'measure', viewW >= 640);
   } else {
+    closeSheet();
     measureLines.visible = false;
     for (const l of mlabels) l.el.hidden = true;
     for (const p of pins) { p.card.hidden = true; p.el.classList.remove('has-card'); }
@@ -6328,11 +6580,13 @@ function focusMarker(m) {
   controls.minDistance = 1.5;
   flyTo(markerPose(m, 0.35));
   hideHint();
+  openSheet(m);
 }
 function overview() {
   activeExplore = null;
+  closeSheet();
   controls.minDistance = 7;
-  flyTo({ pos: new V3(-11.5, 11, -14.5), target: ORBIT.target.clone() });
+  flyTo(orbitPose(0.06));
 }
 function hideHint() { ov.hint.style.opacity = '0'; }
 
@@ -6346,7 +6600,10 @@ document.querySelectorAll('.mode').forEach((b) => b.addEventListener('click', ()
     if (!state.started || s.intro > 0.5 || s.outro > 0.5) { setScene(state.started ? s.scene : 'voor'); overview(); }
   }
 }));
-document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => { setScene(b.dataset.scene); activeExplore = null; }));
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+  if (state.sheet && state.sheet.phase !== b.dataset.scene) closeSheet();
+  setScene(b.dataset.scene); activeExplore = null;
+}));
 $('#btn-overview').addEventListener('click', overview);
 /* The mouse wheel scrolls the page until the viewer has been clicked. */
 let zoomArmed = false;
@@ -6361,6 +6618,11 @@ function setToggle(id, key, on) {
 }
 $('#tgl-notes').addEventListener('click', () => setToggle('#tgl-notes', 'notes', !state.notes));
 $('#tgl-measure').addEventListener('click', () => { state.measureSet = true; setToggle('#tgl-measure', 'measure', !state.measure); });
+$('#tgl-plot').addEventListener('click', () => {
+  setToggle('#tgl-plot', 'plot', !state.plot);
+  /* Show the whole plot when the boundary is switched on from a close-up. */
+  if (state.plot && !state.fly && camera.position.distanceTo(ORBIT.target) < 25) overview();
+});
 $('#btn-play').addEventListener('click', () => (state.playing ? pause() : play()));
 $('#btn-poster').addEventListener('click', play);
 $('#btn-replay').addEventListener('click', () => { state.t = 0; play(); });
@@ -6384,6 +6646,7 @@ const ro = new ResizeObserver(() => {
   viewW = r.width; viewH = r.height;
   stage.setSize(viewW, viewH);
   measureLines.material.resolution.set(viewW, viewH);
+  plotLine.material.resolution.set(viewW, viewH);
 });
 ro.observe(viewer);
 let onScreen = true;
@@ -6405,7 +6668,7 @@ function makeThumb() {
     const prevRatio = renderer.getPixelRatio();
     renderer.setPixelRatio(1);
     stage.setSize(w, h);
-    setScene('voor'); setPose(orbitPose(0.04));
+    setScene('voor'); setPose(posterPose());
     animatePigeons(0);
     updateDrone(0.4);
     stage.render();
@@ -6424,27 +6687,175 @@ function makeThumb() {
   } catch (e) { /* thumbnail is optional */ }
 }
 
-/* Close-up thumbnails for the note cards, rendered once from the same scene. */
-function makeCardShots() {
-  try {
-    const w = 392, h = 206;
-    const prevRatio = renderer.getPixelRatio();
-    renderer.setPixelRatio(1);
-    stage.setSize(w, h);
-    const keep = state.scene;
-    droneRig.visible = false;
-    for (const p of pins) {
-      setScene(p.m.phase);
-      renderer.shadowMap.needsUpdate = true;
-      setPose(markerPose(p.m, 0.7));
-      animatePigeons(1.3);
-      stage.render();
-      p.card.querySelector('img').src = renderer.domElement.toDataURL('image/jpeg', 0.84);
+/* ------------------------------------------------------------------
+   Site photos. In the real system the operator adds phone photos to a
+   marker (EXIF and GPS stripped from the customer copies). Here they are
+   rendered from the same scene at eye level and graded like a phone shot:
+   photo 1 is the close-up, photo 2 a second angle.
+------------------------------------------------------------------- */
+const PHOTO = { w: 800, h: 600, fov: 50 };
+/* Where the operator stood. Same number = same spot in VOOR and NA, so before and after photos match. */
+function photoPose(m, k) {
+  const p = m.pos, up = new V3(0, 1, 0);
+  const hd = (rot) => new V3(m.view.x, 0, m.view.z).normalize().applyAxisAngle(up, rot);
+  const at = (pos) => ({ pos, target: p.clone() });
+  if (k === 0 && (m.n <= 3 || m.n === 5)) return at(p.clone().addScaledVector(m.view, m.dist * 0.42));
+  switch (m.n) {
+    case 1: return at(new V3(p.x + 1.2, 6.55, -5.7));                 /* from the ladder at the gutter */
+    case 2: return at(new V3(p.x + 3.4, RIDGE_TOP + 1.1, -0.9));      /* along the ridge */
+    case 3: return at(northPt(p.x + 1.4, 3.4, 1.1));                  /* from higher up the slope */
+    case 4: return at(k === 0 ? p.clone().addScaledVector(hd(0.6), 1.1).add(new V3(0, 0.6, 0)) : p.clone().addScaledVector(hd(-0.9), 2.6).add(new V3(0, 0.75, 0)));
+    case 6: return at(k === 0 ? p.clone().addScaledVector(hd(0.4), 0.75).add(new V3(0, 0.5, 0)) : p.clone().addScaledVector(hd(-0.8), 1.7).add(new V3(0, 1.45, 0)));
+    default: {
+      const v = m.view.clone().applyAxisAngle(up, 0.7);
+      v.y *= 0.75;
+      return at(p.clone().addScaledVector(v.normalize(), m.dist * 0.9));
     }
-    setScene(keep);
-    renderer.setPixelRatio(prevRatio);
-    if (viewW > 1) stage.setSize(viewW, viewH);
-  } catch (e) { /* cards fall back to an empty image area */ }
+  }
+}
+const grain = (() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d'), img = g.createImageData(128, 128), R = rng(99);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = 128 + (R() - 0.5) * 120;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+})();
+function gradePhoto(src) {
+  const { w, h } = PHOTO;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.drawImage(src, 0, 0, w, h);
+  g.globalCompositeOperation = 'soft-light';
+  g.fillStyle = 'rgba(255,196,140,0.35)'; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'multiply';
+  const v = g.createRadialGradient(w / 2, h / 2, h * 0.38, w / 2, h / 2, Math.hypot(w, h) / 2);
+  v.addColorStop(0, '#ffffff'); v.addColorStop(1, '#a89c90');
+  g.fillStyle = v; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'overlay';
+  g.globalAlpha = 0.16;
+  g.fillStyle = g.createPattern(grain, 'repeat'); g.fillRect(0, 0, w, h);
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  return c.toDataURL('image/jpeg', 0.84);
+}
+/* Renders the missing photos in `list` ([marker, k] pairs) and puts the view back exactly as it was. */
+function renderPhotos(list) {
+  const todo = list.filter(([m, k]) => !m.photos[k]);
+  if (!todo.length) return;
+  const keep = {
+    scene: state.scene, pos: camera.position.clone(), quat: camera.quaternion.clone(), fov: camera.fov, ratio: renderer.getPixelRatio(),
+    drone: droneRig.visible, lines: measureLines.visible, plot: plotGroup.visible, dim: cropU.uCropDim.value,
+  };
+  todo.sort((a, b) => (b[0].phase === keep.scene) - (a[0].phase === keep.scene));
+  try {
+    renderer.setPixelRatio(1);
+    camera.fov = PHOTO.fov;
+    stage.setSize(PHOTO.w, PHOTO.h);
+    droneRig.visible = false; measureLines.visible = false; plotGroup.visible = false; cropU.uCropDim.value = 0;
+    animatePigeons(1.3);
+    for (const [m, k] of todo) {
+      if (state.scene !== m.phase) setScene(m.phase);
+      setPose(photoPose(m, k));
+      stage.render();
+      m.photos[k] = gradePhoto(renderer.domElement);
+    }
+  } catch (e) { console.warn('photos', e); }
+  if (state.scene !== keep.scene) setScene(keep.scene);
+  camera.position.copy(keep.pos); camera.quaternion.copy(keep.quat); camera.fov = keep.fov;
+  renderer.setPixelRatio(keep.ratio);
+  droneRig.visible = keep.drone; measureLines.visible = keep.lines; plotGroup.visible = keep.plot; cropU.uCropDim.value = keep.dim;
+  if (viewW > 1) stage.setSize(viewW, viewH); else camera.updateProjectionMatrix();
+  applyPhotos();
+}
+function applyPhotos() {
+  for (const p of pins) {
+    const img = p.card.querySelector('img');
+    if (p.m.photos[0] && img.getAttribute('src') !== p.m.photos[0]) img.src = p.m.photos[0];
+  }
+  document.querySelectorAll('.item[data-marker]').forEach((b) => {
+    const m = ALL_MARKERS.find((x) => x.id === b.dataset.marker);
+    const img = b.querySelector('.item__thumb img');
+    if (m.photos[0] && img.getAttribute('src') !== m.photos[0]) img.src = m.photos[0];
+  });
+  if (state.sheet) fillSheetPhotos(state.sheet);
+}
+/* All photos are made in small batches when the browser is idle, so the page starts at once. */
+const photoJobs = [0, 1].flatMap((k) => ['voor', 'na'].map((ph) => MARKERS[ph].map((m) => [m, k])));
+const whenIdle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 250));
+function nextPhotoBatch() {
+  const job = photoJobs.shift();
+  if (!job) return;
+  renderPhotos(job);
+  whenIdle(nextPhotoBatch);
+}
+
+/* Marker sheet under the viewer, and a lightbox for the photos. */
+const sheetEl = $('#sheet');
+const sheetBtns = [...sheetEl.querySelectorAll('.photo-btn')];
+function fillSheetPhotos(m) {
+  sheetBtns.forEach((b, k) => {
+    const img = b.querySelector('img');
+    if (m.photos[k] && img.getAttribute('src') !== m.photos[k]) img.src = m.photos[k];
+    if (!m.photos[k]) img.removeAttribute('src');
+    b.setAttribute('aria-label', `Foto ${k + 1} van 2 vergroten: ${m.label}`);
+  });
+}
+function openSheet(m) {
+  renderPhotos([[m, 0], [m, 1]]);
+  state.sheet = m;
+  const kind = m.phase === 'voor' ? 'Probleem' : 'Oplossing';
+  const badge = $('#sheet-badge');
+  badge.className = `badge badge--${m.phase}`;
+  badge.textContent = String(m.n);
+  $('#sheet-kicker').textContent = `${kind} ${m.n} van ${MARKERS[m.phase].length}`;
+  $('#sheet-title').textContent = m.label;
+  $('#sheet-note').textContent = m.note;
+  fillSheetPhotos(m);
+  sheetEl.hidden = false;
+}
+function closeSheet() {
+  const el = $('#sheet');
+  if (state.sheet && el.contains(document.activeElement)) $('#btn-overview').focus({ preventScroll: true });
+  state.sheet = null;
+  el.hidden = true;
+}
+const lb = { el: $('#lightbox'), img: $('#lb-img'), m: null, k: 0 };
+function showLightbox(m, k) {
+  lb.m = m; lb.k = k;
+  lb.img.src = m.photos[k] || '';
+  lb.img.alt = `Foto ${k + 1} van ${m.label}`;
+  $('#lb-title').textContent = `${m.phase === 'voor' ? 'Probleem' : 'Oplossing'} ${m.n}: ${m.label}`;
+  $('#lb-count').textContent = `${k + 1} / 2`;
+  if (!lb.el.open) {
+    if (lb.el.showModal) lb.el.showModal(); else lb.el.setAttribute('open', '');
+  }
+}
+function closeLightbox() { if (lb.el.close) lb.el.close(); else lb.el.removeAttribute('open'); }
+sheetBtns.forEach((b, k) => b.addEventListener('click', () => { if (state.sheet) showLightbox(state.sheet, k); }));
+$('#sheet-close').addEventListener('click', () => { closeSheet(); activeExplore = null; });
+$('#lb-close').addEventListener('click', closeLightbox);
+$('#lb-prev').addEventListener('click', () => showLightbox(lb.m, (lb.k + 1) % 2));
+$('#lb-next').addEventListener('click', () => showLightbox(lb.m, (lb.k + 1) % 2));
+lb.el.addEventListener('click', (e) => { if (e.target === lb.el) closeLightbox(); });
+lb.el.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); showLightbox(lb.m, (lb.k + 1) % 2); }
+});
+
+/* Boundary view fades in and out; the materials read the same uniform. */
+const plotMats = [];
+plotGroup.traverse((o) => { if (o.material && !plotMats.includes(o.material)) { o.material.transparent = true; plotMats.push(o.material); } });
+function updatePlot(dt) {
+  const to = state.mode === 'explore' && state.plot ? 1 : 0;
+  let d = cropU.uCropDim.value;
+  if (d === to) return;
+  d = reduceMotion ? to : to > d ? Math.min(to, d + dt * 3) : Math.max(to, d - dt * 3);
+  cropU.uCropDim.value = d;
+  for (const m of plotMats) m.opacity = d;
+  plotGroup.visible = d > 0.005;
 }
 
 let last = performance.now();
@@ -6465,6 +6876,7 @@ function frame(now) {
     updateMeasureLabels(updatePins(state.scene, activeExplore));
   }
   updateDrone(state.mode === 'video' ? state.t : now / 1000);
+  updatePlot(dt);
   stage.render();
   /* If a desktop GPU struggles with ambient occlusion, drop it after a short measurement. */
   if (stage.high && perf.n < 120) {
@@ -6476,20 +6888,23 @@ function frame(now) {
 const perf = { n: 0, sum: 0 };
 
 setScene('voor');
-makeCardShots();
 makeThumb();
 {
   const r = viewer.getBoundingClientRect();
-  if (r.width > 1) { viewW = r.width; viewH = r.height; stage.setSize(viewW, viewH); measureLines.material.resolution.set(viewW, viewH); }
+  if (r.width > 1) { viewW = r.width; viewH = r.height; stage.setSize(viewW, viewH); measureLines.material.resolution.set(viewW, viewH); plotLine.material.resolution.set(viewW, viewH); }
 }
 renderVideoFrame();
 requestAnimationFrame(frame);
+setTimeout(() => whenIdle(nextPhotoBatch), 700);
 
 /* Small hook for automated checks; also mirrors the per-frame API the real render worker will use. */
 window.__preview = {
   duration: TL.duration,
   seek: (t) => { setMode('video'); pause(); seek(t); },
   play, pause, setMode, setScene, focus: (id) => focusMarker(ALL_MARKERS.find((m) => m.id === id)),
+  plot: (on) => { setToggle('#tgl-plot', 'plot', on); },
+  photos: () => { renderPhotos(photoJobs.splice(0).flat()); return ALL_MARKERS.map((m) => m.photos.filter(Boolean).length); },
+  photoUrls: () => ALL_MARKERS.map((m) => ({ id: m.id, photos: m.photos.slice() })),
   stats: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, quality: QUALITY, ao: stage.high }),
 };
 $('#ov-fallback').hidden = true;
