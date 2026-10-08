@@ -8,7 +8,7 @@
 2. Site photos on markers move to phase 1 (they were phase 3). Customers see them when they click a pin. EXIF and GPS are stripped from customer copies. Optional: the photo appears as an inset in the video when the camera visits that pin.
 3. A crop tool is added to phase 1. The operator draws the property boundary (or a box) before sharing, and everything outside it is removed from the viewer, the video and the customer page.
 4. The default camera orbit fits the whole cropped area, not just the house. Marker visits still come after the orbit.
-5. Exports are much bigger. Processing time and the web.glb size budget must be measured on a whole-property sample and reported.
+5. Exports are much bigger. Processing time and the web.glb size budget must be measured on a whole-property sample and reported. First numbers, on a size-realistic synthetic property and on DJI's own Terra sample, are in `PLAN.md`; the limits and budgets below come from them and get re-checked on the first real export.
 
 Also recorded: Odoo runs on Odoo Online (odoo.com) with all apps (answers to two open questions).
 
@@ -81,7 +81,7 @@ Open (defaults in brackets):
 
 1. Operator (owner or employee) logs in.
 2. Creates a job: picks the customer from Odoo (search by name, email or address), sets date and type of pest/work.
-3. Uploads the before scan (DJI Terra export, zip or folder, can be several GB for a whole property). This can happen days or weeks before the work.
+3. Uploads the before scan (DJI Terra export, zip or folder; typically 50 to 550 MB for a whole property when a reconstruction region is set in Terra, more without). This can happen days or weeks before the work.
 4. The app processes it in the background with visible progress, then shows the 3D model.
 5. Operator draws the property boundary in a top view (polygon or box). The app may pre-fill it from the cadastral parcel (see Phase 1: crop). Everything outside is dimmed for the operator and removed from everything the customer sees.
 6. Operator places red problem markers anywhere on the mesh (roof, wall, driveway, lawn, tree) with short Dutch labels (for example "Nestplaats duiven", "Rattenholen", "Mierennest"), and attaches site photos to markers where the mesh does not show enough (rat holes, nests in trees, entry points).
@@ -104,13 +104,13 @@ Open (defaults in brackets):
 ## Phase 1: 3D input
 
 - Supports DJI Terra OBJ exports (`.obj` + `.mtl` + JPG textures + `metadata.xml`) and GLB/glTF.
-- Terra can export multi-block OBJ (one OBJ per block folder). Merge blocks into one model. In the upload UI, recommend a single-block export and the reconstruction quality that the M1 benchmark shows is enough for web and video.
-- Whole-property exports are much bigger than roof-only exports. Plan for several GB per upload and millions of triangles. The importer must not load the whole OBJ into memory at once if the M1 benchmark shows that does not fit the server.
+- Terra can export multi-block OBJ (one OBJ per block folder). Merge blocks into one model (up to 4, with a warning). In the upload UI and the guide, recommend a single-block OBJ export with a reconstruction region (ROI) drawn around the property in Terra; that cuts the export 2 to 4x and keeps most neighbour geometry out at the source. Accept only the OBJ output folder, not the Terra project folder.
+- Whole-property exports are much bigger than roof-only exports. Plan for uploads up to about 1.5 GB and up to about 12 M triangles; warn above 3 M triangles. Measured: obj2gltf converts 12 M triangles in about 53 s and 2.1 GB of RAM on 4 cores (`PLAN.md` section 3).
 - Validate geometry after import (bounding box sanity, triangle count, missing textures, degenerate faces) and fail with a clear Dutch error message, never a stack trace. Some DJI Terra versions have produced broken multi-block OBJ exports, so bad input must be caught early.
 - RTK models are georeferenced, so raw vertex coordinates can be huge (projected CRS like RD New or UTM). That causes float32 jitter in WebGL. Read the SRS and origin from `metadata.xml`, recenter around a local origin, and store the original SRS and offset in the database. Handle Z-up vs Y-up.
 - Before and after scans of one job should share the same SRS. Use one local origin per job (taken from the first scan) for both, so they line up and one camera path and one crop boundary work for both. Check the alignment (SRS match, bounding box overlap). If the SRS differs, reproject or stop with a clear message. Give the operator a small manual offset nudge for the after scan in case it's slightly off.
 - Later, only if needed: 3D Tiles (`tileset.json` + `.b3dm`), PLY/LAS point clouds. OSGB is not supported; the UI tells the user to export OBJ instead.
-- Uploads must be resumable and chunked (tus), survive flaky connections and show progress. Max size configurable; the default comes from the M1 benchmark (at least 5 GB).
+- Uploads must be resumable and chunked (tus), survive flaky connections and show progress. Max size configurable, default 3 GB; the reverse proxy's body limit must match.
 
 ## Phase 1: crop to the property
 
@@ -124,7 +124,7 @@ Open (defaults in brackets):
 ## Phase 1: processing (background worker)
 
 - Unzip, detect format, validate, convert to GLB.
-- Keep a full-resolution working copy for the operator, and produce the customer files from the cropped copy: `render.glb` (high detail, for video) and `web.glb` (light, for the browser and share page). Simplify meshes to configurable triangle targets, convert textures to WebP or KTX2, cap them at 4096 px. The size budget for `web.glb` of a whole property is set from the M1 benchmark (the old target of about 25 MB was for a roof).
+- Keep a full-resolution working copy for the operator, and produce the customer files from the cropped copy: `render.glb` (high detail, for video) and `web.glb` (light, for the browser and share page). Simplify meshes to configurable triangle targets, convert textures to KTX2 (WebP as fallback), cap them at 4096 px. Budgets, from the measurements in `PLAN.md`: `web.glb` about 500k triangles and about 64 Mpx of textures, target 8 to 15 MB, hard cap 25 MB (texture memory on phones is the real limit, not triangles); `render.glb` about 1.5 M triangles and about 270 Mpx of textures, which keeps the headless renderer near 3 GB of RAM.
 - Compute bounding box, center, up axis, suggested orbit for the cropped area. Generate a still thumbnail.
 - Keep the original upload untouched until retention cleanup.
 - Measure and report processing time and peak memory per step on a whole-property sample, and the resulting `web.glb` and `render.glb` sizes.

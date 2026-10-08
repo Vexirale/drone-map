@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>bench viewer</title>
+<style>html,body{margin:0;background:#202020}</style>
+<script type="importmap">
+{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+
+const params = new URLSearchParams(location.search);
+const url = params.get('m');
+const W = +(params.get('w') || 1280), H = +(params.get('h') || 720);
+const res = { url };
+try {
+  const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
+  renderer.setSize(W, H);
+  document.body.appendChild(renderer.domElement);
+  const gl = renderer.getContext();
+  res.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+  res.glRenderer = gl.getParameter(gl.RENDERER);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87a0b8);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2.0));
+
+  const t0 = performance.now();
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  loader.setKTX2Loader(new KTX2Loader().setTranscoderPath('/three/examples/jsm/libs/basis/').detectSupport(renderer));
+  const gltf = await loader.loadAsync(url);
+  const t1 = performance.now();
+  res.loadMs = t1 - t0;
+  scene.add(gltf.scene);
+
+  // stats
+  let tris = 0, verts = 0, meshes = 0;
+  const texs = new Set();
+  gltf.scene.traverse(o => {
+    if (o.isMesh) {
+      meshes++;
+      const g = o.geometry;
+      verts += g.attributes.position.count;
+      tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+      const ms = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of ms) for (const k of ['map', 'normalMap', 'emissiveMap', 'roughnessMap']) if (m[k]) texs.add(m[k]);
+    }
+  });
+  let texBytes = 0; const texDims = {};
+  let compressedBytes = 0; const formats = {};
+  for (const t of texs) {
+    const w = t.image.width, h = t.image.height;
+    if (t.isCompressedTexture) {
+      let b = 0; for (const m of t.mipmaps) b += m.data.byteLength;
+      compressedBytes += b; texBytes += b; formats[t.format] = (formats[t.format] || 0) + 1;
+    } else texBytes += w * h * 4 * 1.33;
+    texDims[`${w}x${h}`] = (texDims[`${w}x${h}`] || 0) + 1;
+  }
+  Object.assign(res, { meshes, tris, verts, textures: texs.size, texDims, gpuTexMB_est: texBytes / 1048576, compressedTexMB: compressedBytes / 1048576, compressedFormats: formats });
+
+  // camera: fit bounding box, oblique view
+  const box = new THREE.Box3().setFromObject(gltf.scene);
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  res.bbox = { min: box.min.toArray(), max: box.max.toArray() };
+  const cam = new THREE.PerspectiveCamera(45, W / H, 0.1, 5000);
+  const R = s.length() * 0.85;
+  cam.position.set(c.x + R * 0.5, c.y + R * 0.75, c.z + R * 0.6);
+  cam.lookAt(c);
+  const t2 = performance.now();
+  renderer.render(scene, cam);
+  const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); // forces GPU finish
+  const t3 = performance.now();
+  res.firstFrameMs = t3 - t2;
+  // a few more frames (orbit) to measure steady state frame time
+  const t4 = performance.now();
+  const N = 5;
+  for (let i = 0; i < N; i++) {
+    const a = i * 0.3;
+    cam.position.set(c.x + R * 0.5 * Math.cos(a) - R * 0.6 * Math.sin(a), c.y + R * 0.75, c.z + R * 0.5 * Math.sin(a) + R * 0.6 * Math.cos(a));
+    cam.lookAt(c);
+    renderer.render(scene, cam);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  }
+  res.frameMs = (performance.now() - t4) / N;
+  cam.position.set(c.x + R * 0.5, c.y + R * 0.75, c.z + R * 0.6); cam.lookAt(c); renderer.render(scene, cam);
+  res.rendererInfo = { textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries, calls: renderer.info.render.calls };
+  const e = performance.getEntriesByType('resource').filter(r => r.name.includes(url.split('/').pop()))[0];
+  if (e) res.download = { encodedBodySize: e.encodedBodySize, transferSize: e.transferSize, durationMs: e.duration };
+  if (performance.memory) res.jsHeapMB = performance.memory.usedJSHeapSize / 1048576;
+} catch (err) {
+  res.error = String(err && err.stack || err);
+}
+window.__result = res;
+</script>
+</body>
+</html>
