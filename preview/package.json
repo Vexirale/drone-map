@@ -1,0 +1,15 @@
+{
+  "name": "dakscan-preview",
+  "private": true,
+  "description": "Clickable preview of the roof scan platform (fictional house). Not part of the production app.",
+  "type": "module",
+  "scripts": {
+    "build": "python3 tools/build.py",
+    "shoot": "node tools/shoot.mjs",
+    "shoot:asset": "node tools/shoot-asset.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "three": "0.170.0"
+  }
+}
