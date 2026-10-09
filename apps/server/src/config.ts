@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { isIP } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +13,10 @@ import { email } from '@scan/shared';
  *
  * Empty values count as unset, so `ADMIN_PASSWORD=` in a .env file means "no password".
  * Error messages name the variable and the rule, never the value (some values are secrets).
+ *
+ * Secrets (SECRET_VARS) can also be read from a file named by `<NAME>_FILE`, the Docker secrets
+ * convention. On Google Cloud the VM writes them from Secret Manager to a tmpfs and mounts them, so
+ * they never sit in the process environment, which child processes (Chromium, ffmpeg) would inherit.
  */
 
 /** Repo root, derived from this file's location (apps/server/src/config.ts). */
@@ -70,6 +75,9 @@ const int = (min: number, max: number, fallback: number) =>
     )
     .default(fallback);
 
+/** Secrets that may come from `<NAME>_FILE` instead of `<NAME>`. */
+export const SECRET_VARS = ['ADMIN_PASSWORD', 'ODOO_API_KEY', 'DATABASE_PASSWORD'] as const;
+
 const postgresUrl = z.string().regex(/^postgres(ql)?:\/\/\S+$/, { error: 'must be a postgres:// connection URL' });
 
 const httpOrigin = z.string().transform((value, ctx) => {
@@ -125,6 +133,8 @@ const EnvSchema = z.object({
     .default('./data')
     .transform((p) => (path.isAbsolute(p) ? path.normalize(p) : path.resolve(REPO_ROOT, p))),
   DATABASE_URL: postgresUrl,
+  /** Optional; put into DATABASE_URL percent-encoded, so any character works in it. */
+  DATABASE_PASSWORD: z.string().max(1024).optional(),
   DATABASE_URL_TEST: postgresUrl.optional(),
   ADMIN_EMAIL: email.optional(),
   ADMIN_NAME: z.string().max(120).default('Beheerder'),
@@ -146,20 +156,34 @@ const EnvSchema = z.object({
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   // Only look at the variables we know, and treat '' as unset.
+  const unsetIfEmpty = (value: string | undefined) => (value === undefined || value.trim() === '' ? undefined : value);
   const input: Record<string, string | undefined> = {};
-  for (const key of Object.keys(EnvSchema.shape)) {
-    const value = env[key];
-    input[key] = value === undefined || value.trim() === '' ? undefined : value;
+  for (const key of Object.keys(EnvSchema.shape)) input[key] = unsetIfEmpty(env[key]);
+
+  const fileLines: string[] = [];
+  for (const name of SECRET_VARS) {
+    const file = unsetIfEmpty(env[`${name}_FILE`]);
+    if (file === undefined) continue;
+    if (input[name] !== undefined) {
+      fileLines.push(`  - ${name}_FILE: set either ${name} or ${name}_FILE, not both`);
+      continue;
+    }
+    try {
+      // One trailing newline is what `echo` and most editors add; it is not part of the secret.
+      input[name] = unsetIfEmpty(readFileSync(file, 'utf8').replace(/\r?\n$/, ''));
+    } catch {
+      fileLines.push(`  - ${name}_FILE: cannot read the file`);
+    }
   }
 
   const parsed = EnvSchema.safeParse(input);
-  if (!parsed.success) {
-    const lines = parsed.error.issues.map((issue) => {
+  if (!parsed.success || fileLines.length > 0) {
+    const lines = (parsed.error?.issues ?? []).map((issue) => {
       const name = String(issue.path[0] ?? 'environment');
       const message = issue.code === 'invalid_type' && input[name] === undefined ? 'is required' : issue.message;
       return `  - ${name}: ${message}`;
     });
-    throw new ConfigError(`Invalid environment configuration:\n${[...new Set(lines)].join('\n')}`);
+    throw new ConfigError(`Invalid environment configuration:\n${[...new Set([...fileLines, ...lines])].join('\n')}`);
   }
 
   const e = parsed.data;
@@ -180,7 +204,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     sessionTtlDays: e.SESSION_TTL_DAYS,
     staffAllowedCidrs: e.STAFF_ALLOWED_CIDRS,
     dataDir: e.DATA_DIR,
-    databaseUrl: e.DATABASE_URL,
+    databaseUrl: withPassword(e.DATABASE_URL, e.DATABASE_PASSWORD),
     databaseUrlTest: e.DATABASE_URL_TEST,
     admin: { email: e.ADMIN_EMAIL, name: e.ADMIN_NAME, password: e.ADMIN_PASSWORD },
     odoo: {
@@ -192,4 +216,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     version: e.APP_VERSION,
   };
+}
+
+/** Puts the password into a postgres URL, percent-encoded, so `/ @ # ? %` in it cannot break the URL. */
+function withPassword(url: string, password: string | undefined): string {
+  if (password === undefined) return url;
+  const parsed = new URL(url);
+  parsed.password = encodeURIComponent(password);
+  return parsed.href;
 }

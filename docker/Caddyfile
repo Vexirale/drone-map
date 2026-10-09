@@ -2,9 +2,10 @@
 # Behind Caddy, set TRUST_PROXY=1 and COOKIE_SECURE=true in .env, and APP_ORIGIN=https://<DOMAIN>.
 {$DOMAIN} {
 	encode zstd gzip
-	# Must match the app's maximum upload (SPEC: 3 GB scan exports through tus, from M1).
+	# Scan uploads arrive in chunks of at most 64 MB (SPEC: Phase 1, 3D input). On Google Cloud they
+	# go straight to the bucket and never pass through here.
 	request_body {
-		max_size 3GB
+		max_size 100MB
 	}
 	reverse_proxy api:3000
 }

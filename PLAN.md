@@ -1,6 +1,6 @@
 # Plan
 
-Status on 2026-10-09: the clickable preview is done and merged (`preview/`). The 10 decisions in section 1 were approved on 2026-10-09 and M0 is built (scaffold, login with TOTP, Docker, CI, `docs/architecture.md`). M1 waits for the answers in section 7, above all a real whole-property export. `SPEC.md` holds the requirements; this file holds how I intend to build them, with the numbers behind the choices.
+Status on 2026-10-09: the clickable preview is done and merged (`preview/`). The 10 decisions in section 1 were approved on 2026-10-09 and M0 is built (scaffold, login with TOTP, Docker, CI, `docs/architecture.md`). Two changes came in the same day: traceable measurements and hosting on Google Cloud. Decisions 11 to 20 below are proposed for them and wait for an OK; the hosting proposal with costs is `docs/gcp-hosting.md` (summary in section 9). M1 waits for the answers in section 7, above all a real whole-property export. `SPEC.md` holds the requirements; this file holds how I intend to build them, with the numbers behind the choices.
 
 ## 1. Decisions (approved 2026-10-09)
 
@@ -19,6 +19,26 @@ Proposed in the first planning round:
 Changed by the new measurements:
 
 10. **KTX2 textures for `web.glb` after all.** I proposed WebP-only earlier. A whole property has many texture pages, and decoded WebP needs about 4x the GPU memory of KTX2 ETC1S (340 MB vs 85 MB measured for 64 pages at 1024 px). That is the difference between working and crashing on many phones. WebP stays the fallback.
+
+Decision 6 (Uptime Kuma) is superseded by decision 19.
+
+### Proposed 2026-10-09, waiting for an OK
+
+Traceable measurements (`docs/measurements.md` has the methods, formulas and the worked example):
+
+11. **Final values are computed on `work.glb`, not on `render.glb`.** The change request said "render.glb (or the original)". But `render.glb` is simplified to about 1.5 M triangles for the renderer, which rounds off edges and ridges by centimetres. And the original upload is deleted after 90 days, so a measurement could not be recomputed or checked later. `work.glb` is the original geometry, losslessly converted, and kept as long as the job. M1 therefore keeps `work.glb` unsimplified and unquantized.
+12. **Measurement revisions are append-only.** A database trigger refuses updates. Quotes, reports and customer pages store the revision id plus a copy of the values they showed. Each revision stores its algorithm version and every parameter it used, so a changed setting or a better algorithm never changes an old number. Recalculating is an explicit operator action that creates a new revision.
+13. **Uncertainty:** @@SIGMA_DECISION@@
+14. **The inputs are captured from the first upload (M1),** not from M4: file hashes, coordinate systems and vertical datum, the projection scale and NAP offset at the job origin, the median texel size, the Terra quality report's GSD when present, and tool versions. That is the "store the data from M0" part. M0 itself has no scans, so nothing changes in its tables; the storage layer now returns a SHA-256 for every file it writes.
+
+Google Cloud (proposal and costs in `docs/gcp-hosting.md`):
+
+15. **Uploads go straight from the browser to the bucket** with Cloud Storage's resumable protocol, and the local disk driver implements the same protocol in the API. tus is dropped. Through the VM, every upload of up to 3 GB would pass Caddy and Node, need the VM disk as a staging area, and break on every deploy. Straight to the bucket, it uses Google's upload front ends and survives a restart of the app. The API still decides the object name and exact size, and the import verifies size and hash.
+16. **Database:** @@DB_DECISION@@
+17. **Secrets reach the app as files, not through a Google SDK.** A boot unit on the VM reads them from Secret Manager with the VM's own credentials into a tmpfs, and compose mounts them (`<NAME>_FILE`). The app keeps zero Google code for secrets and runs unchanged anywhere, and secrets stay out of the environment that Chromium and ffmpeg inherit. Built now: `config.ts` reads `<NAME>_FILE` and `DATABASE_PASSWORD`. There is no session secret to store: sessions are random tokens, and the database keeps only their SHA-256.
+18. **Caddy keeps doing HTTPS on the VM,** with Let's Encrypt. A Google load balancer with a managed certificate costs about $18 a month plus traffic, and adds moving parts for a single VM.
+19. **Cloud Monitoring replaces Uptime Kuma:** uptime checks on `/health` and on a customer page, log-based alerts for failing renders and Odoo calls, Ops Agent for logs and metrics, e-mail alerts.
+20. **OpenTofu rather than Terraform.** It is the same HCL and the same Google provider, under the open MPL licence instead of BUSL. Switching to Terraform later would be a one-line change.
 
 ## 2. What the whole-property scope changes
 
@@ -158,24 +178,29 @@ Phase in brackets; tables are created by migrations in their milestone.
 - `jobs` (P1):
   - Odoo partner id plus cached name and city;
   - date, pest types, status;
-  - job origin and SRS;
+  - job origin and SRS, the vertical datum, the projection scale at the origin and the offset to NAP when known (decision 14);
   - `boundary` (jsonb, see 2.1) and `boundary_source_data` (raw cadastral GeoJSON, endpoint, fetch time).
 - `scans` (P1):
-  - voor/na, processing state, SRS, offset to the job origin, manual nudge;
-  - stats (triangles, pages, texels);
+  - voor/na, processing state, SRS (horizontal, vertical, WKT as read), offset to the job origin, manual nudge, up axis;
+  - stats (triangles, pages, texels), the median texel size, and the GSD from a Terra quality report when present;
+  - a hash over the uploaded files and the pipeline's tool versions;
   - `derived_boundary_version`, so outdated customer files are detected.
-- `files` (P1): every stored file with kind and retention class. Kinds:
+- `files` (P1): every stored file with kind, retention class, size and SHA-256. Kinds:
   - scan files: original upload, `work.glb` (full model, staff), `crop.glb`, `render.glb`, `web.glb`, thumbnail;
   - video files: video, video poster;
   - photo files: original, customer copy, thumbnail;
-  - later: orthophoto (P2), report PDF (P2), screenshot (P3).
+  - later: orthophoto (P2), measurement screenshot (P2), report PDF (P2), screenshot (P3).
+- `upload_sessions` (P1): only for the local disk driver, which speaks the resumable protocol itself (decision 15).
 - `markers` (P1): scan, kind (problem or solution), label, order, position and normal, surface class, `in_video`, `copied_from`.
 - `marker_photos` (P1): marker, original file, customer file, thumbnail file, `taken_at`, order, `show_in_video`.
 - `label_presets` (P1): kind, label, order, active. Pest types are seeded in `settings`.
 - `camera_paths` (P1): orbit parameters, the fitted per-angle distances, keyframes, version.
 - `renders` (P1): frozen snapshot of the path, branding and boundary version; status, timings, output files.
 - `share_links` and `share_link_daily_views` (P1); `odoo_links` and `odoo_sync_log` (P1, M3).
-- `measurements`, `quote_mappings`, `quotes`, `reports` (P2)
+- `measurements` and `measurement_revisions` (P2): the measurement with its name and tag, and its append-only revisions with points, view rays, method, model hash, algorithm version and parameters, values, uncertainty and screenshot (decision 12).
+- `control_measurements` (P2): tape-measured value, model value and deviation per checked value.
+- `quote_mappings` (P2): measurement type and value, product, extra percentage and its label, rounding rule and step, minimum quantity.
+- `quotes`, `reports` (P2): snapshots of what was issued, with the revision ids used.
 - `notes`, `job_photos`, `screenshots`, `job_status_history` (P3)
 
 Worker queues:
@@ -184,13 +209,18 @@ Worker queues:
 - `photo.process`;
 - `render.video`;
 - `cleanup.nightly`;
-- `odoo.link` (M3).
+- `odoo.link` (M3);
+- `backup.db` (M3b, only with Postgres on the VM);
+- `measurement.compute` (M4): re-project the picks onto `work.glb`, compute values and uncertainty, render the screenshot;
+- `report.generate` (M5).
 
 ## 6. Milestones (updated)
 
 - **M0:** as planned (scaffold, Docker dev with Postgres and local Odoo, auth, `CLAUDE.md`, `docs/architecture.md`). The architecture doc covers the crop, photos and fitted camera path from the start.
 - **M1:**
   - upload and import: OBJ and GLB, up to 4 blocks merged, limits from section 4;
+  - resumable uploads with Cloud Storage's protocol, served by the local disk driver for now (decision 15);
+  - provenance for later measurements: file hashes, SRS and vertical datum, projection scale and NAP offset, median texel size, Terra quality report GSD when present, tool versions (decision 14); `work.glb` stays lossless (decision 11);
   - alignment and the operator viewer;
   - boundary editor with the optional PDOK pre-fill;
   - `scan.derive` (crop, mask, fragment cleanup, KTX2/meshopt `web.glb`, `render.glb`);
@@ -203,8 +233,17 @@ Worker queues:
   - render worker with optional photo insets;
   - measured render time on a whole property;
   - branding settings.
-- **M3:** as planned; the share page gets pins with photo sheets; `HANDLEIDING.md` covers the Terra export settings (section 7) and drawing the boundary.
-- **M4 to M8:** as in SPEC; measuring and the 2D orthophoto work on the cropped area.
+- **M3:** as planned, without the operations part (moved to M3b); the share page gets pins with photo sheets; `HANDLEIDING.md` covers the Terra export settings (section 7) and drawing the boundary.
+- **M3b, Google Cloud** (after the OK on `docs/gcp-hosting.md`; it can start as soon as the project exists, in parallel with M1 to M3):
+  - OpenTofu under `infra/gcp/` with a README, state in a versioned bucket;
+  - the Cloud Storage adapter (uploads, signed URLs) and the secrets boot unit;
+  - backups and one full restore into a fresh environment, written down;
+  - monitoring and alerts, the billing budget;
+  - one-command deploy through Artifact Registry;
+  - `docs/runbook.md` with every IAM role and who has it, and `docs/server-requirements.md`.
+- **M4:** measuring as in SPEC, implemented exactly as `docs/measurements.md`: the math in `packages/shared` with the exact-geometry and Monte Carlo tests, `measurement.compute`, revisions, control measurements and their statistics in settings, the "Hoe berekend?" panel; the 2D orthophoto view on the cropped area.
+- **M5:** quote builder with the calculation in the Odoo line description, inspection report with the "Meetverantwoording" appendix, inspection page.
+- **M6 to M8:** as in SPEC.
 
 ## 7. Open questions for the owner (updated)
 
@@ -220,7 +259,11 @@ Worker queues:
 6. **RTK correction source**: a network service such as 06-GPS, or a D-RTK base on an unsurveyed point? This decides how far the cadastral outline will be off.
 7. **Drone model**: Mavic 3E, Matrice 4E or other.
 8. **Domain for share links; retention** (default: originals 90 days, everything else 2 years).
-9. **A real before/after whole-property export with consent**: needed for the M1 benchmark and the render test.
+9. **A real before/after whole-property export with consent**: needed for the M1 benchmark and the render test. If Terra writes a quality report, include it: it states the GSD.
+10. **Google Cloud**: is there an organization and project already, who owns the billing account, and which Google accounts (company e-mail addresses, no personal ones) should get admin and deploy access?
+11. **Does their Odoo run in this Google Cloud project?** I assume not (it is Odoo Online). If it did, the app would talk to it over the private network, and a custom Odoo module would become possible.
+12. **Monthly budget limit** for the billing alerts at 50, 90 and 100 %.
+13. **Tape measures for control measurements**: on the first real jobs, measure a few edges and areas by hand (gutter length, a flat roof part, a driveway), so the accuracy shown to customers is backed by real deviations as soon as possible.
 
 Draft export settings for the owner, to confirm on a real job:
 - Quality High, "Reduce Model To" 50 %, format OBJ only.
@@ -236,6 +279,7 @@ Draft export settings for the owner, to confirm on a real job:
 - Real texel density, page count and size per property (all extrapolated from one 6 cm GSD sample).
 - Render time with supersampling, frame capture and ffmpeg included.
 - iOS behaviour for HEIC uploads, and GPU memory limits on older iPhones.
+- Which vertical datum Terra writes in `metadata.xml` for the chosen output (ellipsoidal or NAP), and whether its quality report is part of the OBJ output folder and in what format (for the GSD).
 
 ## Sources
 
