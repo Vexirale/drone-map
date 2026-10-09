@@ -14,7 +14,9 @@ x-app: &app
   env_file: .env
   environment:
     NODE_ENV: production
-    DATABASE_URL: postgres://scan:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/scan
+    # The password is passed separately (node-postgres reads PGPASSWORD), so any character works in it.
+    DATABASE_URL: postgres://scan@db:5432/scan
+    PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     DATA_DIR: /data
   volumes:
     - data:/data

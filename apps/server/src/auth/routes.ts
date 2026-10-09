@@ -52,7 +52,8 @@ const meResponse = (stage: AuthContext['stage'], user: User) => MeResponse.parse
 /** Lower-cased email from a not yet validated login body, for the rate limit key. */
 const bodyEmail = (request: FastifyRequest): string => {
   const value = (request.body as { email?: unknown } | null)?.email;
-  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+  // Capped at the longest valid email, so junk bodies cannot fill the limiter's memory.
+  return typeof value === 'string' ? value.trim().toLowerCase().slice(0, 254) : '';
 };
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
@@ -74,6 +75,12 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     max: 5,
     timeWindow: MINUTE,
     keyGenerator: (request) => `totp:${getAuth(request).user.id}`,
+  });
+  // And at most 20 a day: guessing a 6-digit code at 5 a minute would otherwise succeed within weeks.
+  const totpPerUserDay = rateLimit(app, {
+    max: 20,
+    timeWindow: 24 * 60 * MINUTE,
+    keyGenerator: (request) => `totp-day:${getAuth(request).user.id}`,
   });
 
   /** Bookkeeping for every session that reaches 'full'. */
@@ -130,7 +137,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     return meResponse(stage, publicUser);
   });
 
-  app.post(API.totpVerify, { preHandler: [requireSession, totpPerUser] }, async (request, reply) => {
+  app.post(API.totpVerify, { preHandler: [requireSession, totpPerUser, totpPerUserDay] }, async (request, reply) => {
     const auth = getAuth(request);
     const { code } = parseBody(TotpCodeRequest, request.body);
     if (auth.stage !== 'password' || !auth.user.totpEnabled) throw new HttpError(409, 'conflict');
@@ -157,17 +164,23 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const auth = getAuth(request);
     if (auth.user.totpEnabled) throw new HttpError(409, 'conflict');
 
-    // A new secret on every call; it only becomes active through totp/enable.
-    const secret = generateTotpSecret();
-    await db
-      .update(users)
-      .set({ totpSecret: secret, totpLastStep: null, updatedAt: sql`now()` })
-      .where(and(eq(users.id, auth.user.id), isNull(users.totpEnabledAt)));
+    // Setup that was started but not finished keeps its secret: the user may already have scanned it
+    // (reloading the page, StrictMode, a second tab). It only becomes active through totp/enable;
+    // pnpm user:reset-totp clears it.
+    const state = await totpState(auth.user.id);
+    let secret = state.enabledAt === null ? state.secret : null;
+    if (!secret) {
+      secret = generateTotpSecret();
+      await db
+        .update(users)
+        .set({ totpSecret: secret, totpLastStep: null, updatedAt: sql`now()` })
+        .where(and(eq(users.id, auth.user.id), isNull(users.totpEnabledAt)));
+    }
     const { companyName } = await getSetting(db, 'branding');
     return TotpSetupResponse.parse({ secret, otpauthUrl: totpUri(secret, companyName, auth.user.email) });
   });
 
-  app.post(API.totpEnable, { preHandler: [requireSession, totpPerUser] }, async (request, reply) => {
+  app.post(API.totpEnable, { preHandler: [requireSession, totpPerUser, totpPerUserDay] }, async (request, reply) => {
     const auth = getAuth(request);
     const { code } = parseBody(TotpCodeRequest, request.body);
     const state = await totpState(auth.user.id);

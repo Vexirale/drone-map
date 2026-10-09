@@ -77,6 +77,7 @@ jobs:
             e2e/.report
             e2e/.results
           retention-days: 7
+          include-hidden-files: true
 
   docker:
     name: Docker images

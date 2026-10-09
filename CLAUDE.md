@@ -17,6 +17,7 @@ pnpm db:generate                                    # after changing apps/server
 pnpm db:migrate                                     # the API also migrates on startup
 pnpm user:add -- --email jan@x.nl --name Jan --role operator   # prints a generated password once
 pnpm user:reset-totp -- --email jan@x.nl            # lost phone
+pnpm user:reset-password -- --email jan@x.nl        # forgotten password; prints a new one once
 ./scripts/odoo-init.sh                              # local Odoo 19 with Invoicing (profile "odoo")
 docker build --target api . / --target worker .     # production images; compose.yml runs them
 ```
@@ -48,12 +49,15 @@ Login checks the password (argon2id) and creates a `'password'`-stage session wh
 
 - **Docker Hub rate-limits the cloud dev container (HTTP 429).** Pull through the mirror and tag: `docker pull mirror.gcr.io/library/postgres:18-alpine && docker tag mirror.gcr.io/library/postgres:18-alpine postgres:18-alpine`. Keep official image names in the files.
 - **Docker builds in the cloud container** cannot reach npm on the default network and see a TLS-intercepting proxy. Verify builds there with `--network host` and a throwaway Dockerfile copy that copies `/root/.ccr/ca-bundle.crt` (via `--build-context`) and sets `NODE_EXTRA_CA_CERTS` in the `base` stage. Never commit that.
+- **Node majors move LTS to LTS (24 → 26) by hand**, together in the Dockerfile, `.github/workflows/ci.yml` and `.nvmrc`; Dependabot ignores Node majors. Node 25+ ships without corepack, so the Dockerfile installs pnpm with npm (keep its version in step with `packageManager`).
 - **TypeScript stays on 6.0.x:** typescript-eslint 8 supports TypeScript below 6.1 only (Dependabot ignores TS majors for now).
 - **Postgres 18 images** keep data under `/var/lib/postgresql/18/docker`; mount the volume at `/var/lib/postgresql`, not `/var/lib/postgresql/data`.
 - **Never `pnpm deploy`** the server: Node refuses to strip types inside `node_modules`, and deploy copies `@scan/shared` there. The Dockerfile keeps the workspace layout instead.
 - **Fastify 5** treats a numeric `trustProxy` as "trust nobody"; `security.ts` turns `TRUST_PROXY=<hops>` into a function. Prefer `1` over `true` behind a proxy when `STAFF_ALLOWED_CIDRS` is used.
 - **Fastify parses `text/plain` by default**; the app removes that parser so bodies must be JSON (CSRF).
 - **The rate limiter is in memory**: fine for one API process. A second process would need a shared store.
+- **The router decodes percent-escapes** (`/%61pi/...` matches `/api/...`), so never guard by testing the raw `request.url`; the Origin check covers every mutating request.
+- **Database password in Docker:** passed as `PGPASSWORD`, never inside `DATABASE_URL`, so `/ @ # ?` in it cannot break the URL.
 - **Odoo 19 CLI:** demo data is off by default (`--with-demo` to add it); `odoo db init <name> --language nl_NL --country NL` creates a database; the image's entrypoint appends DB flags at the end, which `odoo db …` rejects, so `scripts/odoo-init.sh` passes them explicitly with `--entrypoint odoo`.
 - **Playwright:** pinned to 1.56.1 because the cloud container ships Chromium build 1194; CI installs its own browser.
 - Measured while benchmarking (PLAN.md section 4), for M1:

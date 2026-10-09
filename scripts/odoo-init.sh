@@ -21,11 +21,18 @@ fi
 
 exists=$("${compose[@]}" exec -T odoo-db psql -U odoo -d postgres -Atc "select 1 from pg_database where datname = 'odoo'")
 if [[ "${exists}" == "1" ]]; then
-  echo "Database 'odoo' already exists; leaving it as it is."
+  echo "Database 'odoo' already exists."
 else
   echo "Creating database 'odoo' (Dutch, Netherlands, no demo data)..."
   "${compose[@]}" run --rm --no-deps --entrypoint odoo odoo db "${db_args[@]}" init odoo \
     --language nl_NL --country NL --username admin --password admin
+fi
+
+# Checked separately, so a first run that stopped half-way still gets Invoicing installed.
+installed=$("${compose[@]}" exec -T odoo-db psql -U odoo -d odoo -Atc "select 1 from ir_module_module where name = 'account' and state = 'installed'" 2>/dev/null || true)
+if [[ "${installed}" == "1" ]]; then
+  echo "Invoicing (account) is installed."
+else
   echo "Installing Invoicing (module account)..."
   "${compose[@]}" run --rm --no-deps --entrypoint odoo odoo -d odoo -i account --stop-after-init "${db_args[@]}"
 fi

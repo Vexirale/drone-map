@@ -69,6 +69,22 @@ export async function resetTotp(db: Db, userId: string, actorId: string | null):
   });
 }
 
+/**
+ * Gives a user a new password (for "wachtwoord vergeten": the admin runs pnpm user:reset-password)
+ * and logs them out everywhere.
+ */
+export async function resetPassword(db: Db, userId: string, password: string, actorId: string | null): Promise<void> {
+  const passwordHash = await hashPassword(password);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ passwordHash, updatedAt: sql`now()` })
+      .where(eq(users.id, userId));
+    await deleteUserSessions(tx, userId);
+    await audit(tx, { actorId, action: 'user.password_reset', targetType: 'user', targetId: userId });
+  });
+}
+
 export async function listUsers(db: Db): Promise<StaffUser[]> {
   const rows = await db
     .select({

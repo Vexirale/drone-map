@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=../../.env src/cli/migrate.ts",
     "user:add": "node --env-file-if-exists=../../.env src/cli/user-add.ts",
-    "user:reset-totp": "node --env-file-if-exists=../../.env src/cli/user-reset-totp.ts"
+    "user:reset-totp": "node --env-file-if-exists=../../.env src/cli/user-reset-totp.ts",
+    "user:reset-password": "node --env-file-if-exists=../../.env src/cli/user-reset-password.ts"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.3",

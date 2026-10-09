@@ -41,8 +41,10 @@ describe('login', () => {
 
     expect(await screen.findByRole('heading', { name: nl.totpCode.title })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/login/code');
-    // Pasting "123 456" works: the space is dropped.
-    await user.type(screen.getByLabelText(nl.totpCode.code), '123 456');
+    // Pasting "123 456" from an authenticator app works: the space is dropped, all six digits stay.
+    await user.click(screen.getByLabelText(nl.totpCode.code));
+    await user.paste('123 456');
+    expect(screen.getByLabelText(nl.totpCode.code)).toHaveValue('123456');
     await user.click(screen.getByRole('button', { name: nl.totpCode.submit }));
     expect(await screen.findByRole('heading', { name: nl.jobs.title })).toBeInTheDocument();
     expect(calls.find((c) => c.key === 'POST /api/auth/totp/verify')?.body).toEqual({ code: '123456' });

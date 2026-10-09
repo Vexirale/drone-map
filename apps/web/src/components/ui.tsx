@@ -78,7 +78,6 @@ export function CodeField({
       inputMode="numeric"
       autoComplete="one-time-code"
       pattern="[0-9]{6}"
-      maxLength={6}
       required
       autoFocus={autoFocus}
       aria-invalid={invalid || undefined}

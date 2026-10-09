@@ -163,6 +163,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
 
   const e = parsed.data;
+  if (e.TRUST_PROXY === true && e.STAFF_ALLOWED_CIDRS.length > 0) {
+    // `true` takes the left-most X-Forwarded-For entry, which a client can set itself behind Nginx.
+    throw new ConfigError(
+      'Invalid environment configuration:\n  - TRUST_PROXY: use the number of proxies in front of the app (usually 1), not true, when STAFF_ALLOWED_CIDRS is set',
+    );
+  }
   return {
     nodeEnv: e.NODE_ENV,
     appOrigin: e.APP_ORIGIN,

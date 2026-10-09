@@ -13,6 +13,7 @@ export default defineConfig([
     'apps/server/drizzle/',
     'coverage/',
     'e2e/.results/',
+    'e2e/.report/',
   ]),
   js.configs.recommended,
   tseslint.configs.recommended,

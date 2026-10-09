@@ -25,7 +25,7 @@ export function TotpSetupPage() {
 
   if (done) return <Navigate to={done} replace />;
   if (me.isPending) return <PageStatus />;
-  if (me.isError) return <PageStatus error={me.error} onRetry={() => void me.refetch()} />;
+  if (me.isLoadingError) return <PageStatus error={me.error} onRetry={() => void me.refetch()} />;
 
   const session = me.data;
   const required = session?.next === 'totp_setup';
