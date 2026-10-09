@@ -4,7 +4,7 @@
 #   docker build --target worker .   background jobs; M2 adds Chromium and ffmpeg here, M4 adds GDAL
 # The server has no build step: Node runs the TypeScript sources directly (type stripping).
 
-FROM node:24-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 WORKDIR /app
 
@@ -29,7 +29,7 @@ FROM manifests AS prod-deps
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prod --filter "@scan/server..."
 
-FROM node:24-bookworm-slim AS api
+FROM node:25-bookworm-slim AS api
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000 \
