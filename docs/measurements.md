@@ -101,14 +101,14 @@ The resolution says how much detail the model holds, and sets the point uncertai
 
 With independent point errors of σ per axis:
 
-| Value | Formula | Note |
-| --- | --- | --- |
-| Distance | `σ_d = σ · √2` | the error along the line of each end point counts |
-| Length | `σ_L = σ · sqrt(Σ_i \|u_(i−1) − u_i\|²)` | `u_i` = unit direction of segment i; an end point has one term, `\|u\| = 1` |
-| Height | `σ_h = σ · √2` | vertical errors of both points |
-| Area along the slope | `var(A) = σ²/4 · Σ_i \|v_(i+1) − v_(i−1)\|²` | in the plane's 2D coordinates; independent in-plane vertex errors |
-| Area from above | the same formula on the E/N coordinates | |
-| Pitch | @@PITCH_SIGMA@@ | |
+| Value                | Formula                                      | Note                                                                        |
+| -------------------- | -------------------------------------------- | --------------------------------------------------------------------------- |
+| Distance             | `σ_d = σ · √2`                               | the error along the line of each end point counts                           |
+| Length               | `σ_L = σ · sqrt(Σ_i \|u_(i−1) − u_i\|²)`     | `u_i` = unit direction of segment i; an end point has one term, `\|u\| = 1` |
+| Height               | `σ_h = σ · √2`                               | vertical errors of both points                                              |
+| Area along the slope | `var(A) = σ²/4 · Σ_i \|v_(i+1) − v_(i−1)\|²` | in the plane's 2D coordinates; independent in-plane vertex errors           |
+| Area from above      | the same formula on the E/N coordinates      |                                                                             |
+| Pitch                | @@PITCH_SIGMA@@                              |                                                                             |
 
 For a rectangle the area formula reduces to `σ_A = σ · diagonal`, since every vertex sees the diagonal `v_(i+1) − v_(i−1)`.
 
