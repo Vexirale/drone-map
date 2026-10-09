@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+# Real scans and customer data never go into git.
+samples/
+data/
+# Test artefacts
+e2e/.results/
+e2e/.report/
+playwright-report/
+test-results/
+.DS_Store

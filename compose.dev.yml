@@ -1,0 +1,58 @@
+# Development services. The app itself runs on the host with `pnpm dev`.
+#   docker compose -f compose.dev.yml up -d                  # app database only
+#   docker compose -f compose.dev.yml --profile odoo up -d   # plus a local Odoo (same major version as production)
+name: scan-dev
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: scan
+      POSTGRES_PASSWORD: scan
+      POSTGRES_DB: scan
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      # Postgres 18 images keep their data under /var/lib/postgresql/<major>/docker.
+      - db:/var/lib/postgresql
+      - ./docker/dev-db-init.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U scan -d scan']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  odoo-db:
+    profiles: [odoo]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    volumes:
+      - odoo-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U odoo -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  odoo:
+    profiles: [odoo]
+    image: odoo:${ODOO_VERSION:-19.0}
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+    environment:
+      HOST: odoo-db
+      USER: odoo
+      PASSWORD: odoo
+    ports:
+      - '127.0.0.1:8069:8069'
+    volumes:
+      - odoo-data:/var/lib/odoo
+
+volumes:
+  db:
+  odoo-db:
+  odoo-data:
