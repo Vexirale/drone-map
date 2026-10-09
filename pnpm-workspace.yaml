@@ -1,0 +1,6 @@
+packages:
+  - apps/*
+  - packages/*
+# preview/ and bench/ are standalone and stay out of the workspace.
+onlyBuiltDependencies:
+  - esbuild

@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+preview/
+bench/
+apps/server/drizzle/
+**/dist/
