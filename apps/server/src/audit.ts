@@ -13,7 +13,8 @@ export type AuditAction =
   | 'auth.logout'
   | 'auth.password_changed'
   | 'user.created'
-  | 'user.totp_reset';
+  | 'user.totp_reset'
+  | 'user.password_reset';
 
 export interface AuditEntry {
   /** The staff user who did it; null for the system (bootstrap, CLI) or an unknown login email. */

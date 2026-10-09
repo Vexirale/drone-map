@@ -60,14 +60,16 @@ export function staffNetworkHook(config: Config) {
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
- * CSRF protection for the API: a state-changing request must come from the app's own origin.
+ * CSRF protection: every state-changing request must come from the app's own origin. It checks all
+ * paths, not only /api/: the router decodes percent-escapes (/%61pi/... reaches /api/...), so a
+ * path test on the raw URL could be bypassed, and the app has no other mutating routes anyway.
  * Browsers send Origin on every cross-origin request and on same-origin POSTs; when it is missing,
  * only Sec-Fetch-Site: same-origin is accepted. Non-browser clients must send Origin themselves.
  * The session cookie is SameSite=Lax and request bodies must be JSON, which closes the rest.
  */
 export function originCheckHook(config: Config) {
   return async (request: FastifyRequest, _reply: FastifyReply) => {
-    if (!MUTATING.has(request.method) || !request.url.startsWith('/api/')) return;
+    if (!MUTATING.has(request.method)) return;
     const origin = request.headers.origin;
     const ok = origin !== undefined ? origin === config.appOrigin : request.headers['sec-fetch-site'] === 'same-origin';
     if (!ok) throw new HttpError(403, 'forbidden');

@@ -78,6 +78,13 @@ describe('config', () => {
     }
   });
 
+  it('refuses TRUST_PROXY=true together with STAFF_ALLOWED_CIDRS (spoofable client IP)', () => {
+    expect(() => loadConfig({ ...base, TRUST_PROXY: 'true', STAFF_ALLOWED_CIDRS: '10.0.0.0/8' })).toThrow(
+      /TRUST_PROXY/,
+    );
+    expect(loadConfig({ ...base, TRUST_PROXY: '1', STAFF_ALLOWED_CIDRS: '10.0.0.0/8' }).trustProxy).toBe(1);
+  });
+
   it('requires DATABASE_URL', () => {
     expect(() => loadConfig({})).toThrow(/DATABASE_URL: is required/);
   });

@@ -20,7 +20,7 @@ export function AppLayout() {
   const logout = useLogout();
 
   if (me.isPending) return <PageStatus />;
-  if (me.isError) return <PageStatus error={me.error} onRetry={() => void me.refetch()} />;
+  if (me.isLoadingError) return <PageStatus error={me.error} onRetry={() => void me.refetch()} />;
   if (me.data === null || me.data.next !== null) {
     const state: ReturnState = { from: location.pathname + location.search };
     return <Navigate to={destinationFor(me.data, state.from)} replace state={state} />;

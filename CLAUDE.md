@@ -17,6 +17,7 @@ pnpm db:generate                                    # after changing apps/server
 pnpm db:migrate                                     # the API also migrates on startup
 pnpm user:add -- --email jan@x.nl --name Jan --role operator   # prints a generated password once
 pnpm user:reset-totp -- --email jan@x.nl            # lost phone
+pnpm user:reset-password -- --email jan@x.nl        # forgotten password; prints a new one once
 ./scripts/odoo-init.sh                              # local Odoo 19 with Invoicing (profile "odoo")
 docker build --target api . / --target worker .     # production images; compose.yml runs them
 ```
@@ -54,6 +55,8 @@ Login checks the password (argon2id) and creates a `'password'`-stage session wh
 - **Fastify 5** treats a numeric `trustProxy` as "trust nobody"; `security.ts` turns `TRUST_PROXY=<hops>` into a function. Prefer `1` over `true` behind a proxy when `STAFF_ALLOWED_CIDRS` is used.
 - **Fastify parses `text/plain` by default**; the app removes that parser so bodies must be JSON (CSRF).
 - **The rate limiter is in memory**: fine for one API process. A second process would need a shared store.
+- **The router decodes percent-escapes** (`/%61pi/...` matches `/api/...`), so never guard by testing the raw `request.url`; the Origin check covers every mutating request.
+- **Database password in Docker:** passed as `PGPASSWORD`, never inside `DATABASE_URL`, so `/ @ # ?` in it cannot break the URL.
 - **Odoo 19 CLI:** demo data is off by default (`--with-demo` to add it); `odoo db init <name> --language nl_NL --country NL` creates a database; the image's entrypoint appends DB flags at the end, which `odoo db …` rejects, so `scripts/odoo-init.sh` passes them explicitly with `--entrypoint odoo`.
 - **Playwright:** pinned to 1.56.1 because the cloud container ships Chromium build 1194; CI installs its own browser.
 - Measured while benchmarking (PLAN.md section 4), for M1:

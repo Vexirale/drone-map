@@ -15,7 +15,7 @@ export function TotpCodePage() {
   const from = returnPath(useLocation().state);
 
   if (me.isPending) return <PageStatus />;
-  if (me.isError) return <PageStatus error={me.error} onRetry={() => void me.refetch()} />;
+  if (me.isLoadingError) return <PageStatus error={me.error} onRetry={() => void me.refetch()} />;
   if (me.data?.next !== 'totp') {
     return <Navigate to={destinationFor(me.data, from)} replace state={{ from } satisfies ReturnState} />;
   }

@@ -57,23 +57,23 @@ POST /api/auth/login (password ok)
 
 All configuration comes from the environment; `.env.example` is the contract and `apps/server/src/config.ts` validates it at startup with a message that names every invalid variable (never its value).
 
-| Variable                      | Default                 | Notes                                                     |
-| ----------------------------- | ----------------------- | --------------------------------------------------------- |
-| `APP_ORIGIN`                  | `http://localhost:5173` | Public origin of the staff app; used for the Origin check |
-| `HOST`, `PORT`                | `0.0.0.0`, `3000`       |                                                           |
-| `TRUST_PROXY`                 | `false`                 | `true` or a hop count behind a reverse proxy (prefer `1`) |
-| `COOKIE_SECURE`               | `false`                 | `true` in production                                      |
-| `SESSION_TTL_DAYS`            | `14`                    | 1 to 90                                                   |
-| `STAFF_ALLOWED_CIDRS`         | empty                   | e.g. `192.168.1.0/24,10.8.0.0/24`                         |
-| `DATA_DIR`                    | `./data`                | Files volume; `/data` in Docker                           |
-| `DATABASE_URL`                | required                |                                                           |
-| `DATABASE_URL_TEST`           | `…/scan_test`           | Wiped by the test suite; must be called `scan_test`       |
-| `ADMIN_EMAIL/NAME/PASSWORD`   | unset                   | First admin, only while no admin exists                   |
-| `ODOO_URL/DB/API_KEY`         | local Odoo              | Used from M3                                              |
-| `ODOO_DRY_RUN`                | `true`                  | Every Odoo write only logs what it would do               |
-| `ODOO_VIDEO_FIELD`            | `x_roof_video_url`      | Custom field on `account.move`                            |
-| `ODOO_VERSION`                | `19.0`                  | Local Odoo image (compose.dev.yml)                        |
-| `DOMAIN`, `POSTGRES_PASSWORD` |                         | Production compose only                                   |
+| Variable                      | Default                 | Notes                                                            |
+| ----------------------------- | ----------------------- | ---------------------------------------------------------------- |
+| `APP_ORIGIN`                  | `http://localhost:5173` | Public origin of the staff app; used for the Origin check        |
+| `HOST`, `PORT`                | `0.0.0.0`, `3000`       |                                                                  |
+| `TRUST_PROXY`                 | `false`                 | Number of proxies in front of the app, usually `1`; avoid `true` |
+| `COOKIE_SECURE`               | `false`                 | `true` in production                                             |
+| `SESSION_TTL_DAYS`            | `14`                    | 1 to 90                                                          |
+| `STAFF_ALLOWED_CIDRS`         | empty                   | e.g. `192.168.1.0/24,10.8.0.0/24`                                |
+| `DATA_DIR`                    | `./data`                | Files volume; `/data` in Docker                                  |
+| `DATABASE_URL`                | required                |                                                                  |
+| `DATABASE_URL_TEST`           | `…/scan_test`           | Wiped by the test suite; must be called `scan_test`              |
+| `ADMIN_EMAIL/NAME/PASSWORD`   | unset                   | First admin, only while no admin exists                          |
+| `ODOO_URL/DB/API_KEY`         | local Odoo              | Used from M3                                                     |
+| `ODOO_DRY_RUN`                | `true`                  | Every Odoo write only logs what it would do                      |
+| `ODOO_VIDEO_FIELD`            | `x_roof_video_url`      | Custom field on `account.move`                                   |
+| `ODOO_VERSION`                | `19.0`                  | Local Odoo image (compose.dev.yml)                               |
+| `DOMAIN`, `POSTGRES_PASSWORD` |                         | Production compose only                                          |
 
 ## 5. Data model (all phases)
 

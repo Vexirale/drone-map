@@ -10,7 +10,7 @@ import { currentTotpCode, generateTotpSecret } from '../src/auth/totp.ts';
 import { ensureFirstAdmin } from '../src/bootstrap.ts';
 import { auditLog, sessions, users } from '../src/db/schema.ts';
 import { createLogger } from '../src/log.ts';
-import { createUser } from '../src/users.ts';
+import { createUser, resetPassword } from '../src/users.ts';
 import { ORIGIN, get, makeApp, post, resetData, sidFrom, testConfig, testDb } from './helpers.ts';
 
 const PASSWORD = 'een lang wachtwoord';
@@ -114,6 +114,8 @@ describe('two-step verification', () => {
     const setup = await post(app, API.totpSetup, {}, halfSid);
     expect(setup.statusCode).toBe(200);
     const { secret, otpauthUrl } = setup.json() as { secret: string; otpauthUrl: string };
+    // Opening the setup screen again (reload, second tab) keeps the secret the user may have scanned.
+    expect(((await post(app, API.totpSetup, {}, halfSid)).json() as { secret: string }).secret).toBe(secret);
     expect(otpauthUrl).toMatch(/^otpauth:\/\/totp\/Bedrijfsnaam:admin%40example\.nl\?/);
 
     expect((await post(app, API.totpEnable, { code: '000000' }, halfSid)).statusCode).toBe(401);
@@ -252,6 +254,16 @@ describe('request hygiene', () => {
     expect(sameSite.statusCode).toBe(200);
   });
 
+  it('also checks the Origin when the path is percent-encoded', async () => {
+    await addUser('operator', 'jan@example.nl');
+    const sid = sidFrom(await post(app, API.login, { email: 'jan@example.nl', password: PASSWORD }))!;
+    for (const url of ['/%61pi/auth/logout', '/ap%69/auth/logout']) {
+      const res = await post(app, url, {}, sid, { origin: 'https://evil.example' });
+      expect(res.statusCode, url).toBe(403);
+    }
+    expect((await get(app, API.me, sid)).statusCode).toBe(200);
+  });
+
   it('accepts JSON bodies only', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -309,6 +321,20 @@ describe('request hygiene', () => {
     } finally {
       await rm(dist, { recursive: true, force: true });
     }
+  });
+});
+
+describe('password reset (pnpm user:reset-password)', () => {
+  it('sets a new password, ends every session and writes an audit row', async () => {
+    const id = await addUser('operator', 'jan@example.nl');
+    const sid = sidFrom(await post(app, API.login, { email: 'jan@example.nl', password: PASSWORD }))!;
+    await resetPassword(db, id, 'een gloednieuw wachtwoord', null);
+    expect((await get(app, API.me, sid)).statusCode).toBe(401);
+    expect((await post(app, API.login, { email: 'jan@example.nl', password: PASSWORD })).statusCode).toBe(401);
+    expect(
+      (await post(app, API.login, { email: 'jan@example.nl', password: 'een gloednieuw wachtwoord' })).statusCode,
+    ).toBe(200);
+    expect(await auditActions()).toContain('user.password_reset');
   });
 });
 
