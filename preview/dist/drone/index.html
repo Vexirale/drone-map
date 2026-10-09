@@ -273,7 +273,7 @@ button { font: inherit; color: inherit; }
 /* Site photo the operator attached to the marker, shown while the camera visits it (optional per video). */
 .ov-photo {
   top: 3.4cqw; right: 3.4cqw;
-  width: 24cqw;
+  width: max(24cqw, 104px);
   background: #fff;
   padding: 0.5cqw 0.5cqw 0;
   border-radius: 0.6cqw;
@@ -281,7 +281,7 @@ button { font: inherit; color: inherit; }
   opacity: 0;
 }
 .ov-photo img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 0.3cqw; background: #DDE6EC; }
-.ov-photo span { display: block; font-family: var(--font-mono); font-size: max(8px, 1.1cqw); letter-spacing: 0.08em; text-transform: uppercase; color: var(--v-muted); padding: 0.5cqw 0.2cqw 0.55cqw; white-space: nowrap; }
+.ov-photo span { display: block; font-family: var(--font-mono); font-size: max(8px, 1.1cqw); letter-spacing: 0.08em; text-transform: uppercase; color: var(--v-muted); padding: 0.5cqw 0.2cqw 0.55cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ov-card {
   inset: 0;
   background: var(--v-card);
@@ -423,11 +423,6 @@ button { font: inherit; color: inherit; }
 .cards { position: absolute; inset: 0; pointer-events: none; }
 .viewer.is-video .anno, .viewer.is-video .cards { display: none; }
 .card.is-below::after { bottom: auto; top: -6px; box-shadow: -2px -2px 4px rgba(0, 0, 0, .06); }
-.card.is-docked { width: auto; max-width: min(340px, calc(100% - 16px)); display: grid; grid-template-columns: 92px minmax(0, 1fr); column-gap: 10px; align-items: center; padding: 7px; }
-.card.is-docked::after { display: none; }
-.card.is-docked .card__img { grid-row: 1 / span 2; grid-column: 1; }
-.card.is-docked .card__head { grid-column: 2; margin: 0; }
-.card.is-docked .card__note { display: block; grid-column: 2; margin-top: 3px; font-size: 11px; }
 .pin.has-card .pin__label { display: none; }
 .toggles { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 .tgl {
@@ -749,7 +744,7 @@ button { font: inherit; color: inherit; }
         <div class="ov ov-poster" id="ov-poster">
           <button class="big-play" id="btn-poster" type="button">
             <span class="big-play__icon"><svg aria-hidden="true"><use href="#i-play"/></svg></span>
-            Bekijk de video <span class="big-play__dur" id="poster-dur">0:53</span>
+            Bekijk de video <span class="big-play__dur" id="poster-dur">1:08</span>
           </button>
         </div>
         <div class="ov ov-end" id="ov-end" hidden>
@@ -772,10 +767,10 @@ button { font: inherit; color: inherit; }
 
       <div class="strip" id="strip-video">
         <button class="icon-btn" id="btn-play" type="button" aria-label="Afspelen"><svg aria-hidden="true"><use href="#i-play" id="play-icon"/></svg></button>
-        <span class="time" id="time">0:00 / 0:53</span>
+        <span class="time" id="time">0:00 / 1:08</span>
         <div class="scrub">
           <div class="track" aria-hidden="true"><div class="track__chapters" id="track-chapters"></div><div class="track__rest" id="track-rest"></div></div>
-          <input type="range" id="scrubber" min="0" max="5300" step="1" value="0" aria-label="Tijdlijn van de video">
+          <input type="range" id="scrubber" min="0" max="6900" step="1" value="0" aria-label="Tijdlijn van de video">
           <div class="chapters" id="chapters"></div>
         </div>
       </div>
@@ -789,7 +784,7 @@ button { font: inherit; color: inherit; }
           <button type="button" class="tgl" id="tgl-measure" aria-pressed="true">Maten <span class="phase-tag">fase 2</span></button>
           <button type="button" class="tgl" id="tgl-plot" aria-pressed="false">Perceelgrens <span class="phase-tag">medewerker</span></button>
         </div>
-        <span class="strip__hint">Wissel Voor en Na. Klik op een markering voor de foto's.</span>
+        <span class="strip__hint">Wissel tussen Voor en Na. Klik op een markering voor de foto's.</span>
         <button class="text-btn" id="btn-overview" type="button">Overzicht</button>
       </div>
       <section class="sheet" id="sheet" aria-labelledby="sheet-title" hidden>
@@ -864,12 +859,12 @@ button { font: inherit; color: inherit; }
         <div class="mail__body">
           <p>Beste klant,</p>
           <p>Hierbij vind je je factuur <b>F2026/0142</b> voor een totaalbedrag van <b>€&nbsp;485,00</b> van Bedrijfsnaam. Graag de betaling zo snel mogelijk in orde te brengen.</p>
-          <button class="mail__thumb" id="mail-thumb" type="button" aria-label="Bekijk de video van het dak">
+          <button class="mail__thumb" id="mail-thumb" type="button" aria-label="Bekijk de video van het werk">
             <img id="mail-thumb-img" alt="" hidden>
             <span class="play-mini"><svg aria-hidden="true"><use href="#i-play"/></svg></span>
-            <span class="dur" id="mail-dur">0:53</span>
+            <span class="dur" id="mail-dur">1:08</span>
           </button>
-          <button class="cta" id="mail-cta" type="button">Bekijk de video van het dak</button>
+          <button class="cta" id="mail-cta" type="button">Bekijk de video van het werk</button>
           <p>Met vriendelijke groeten,<br>Bedrijfsnaam</p>
           <div class="attach"><b>F2026_0142.pdf</b><span>48 kB</span></div>
         </div>
@@ -879,7 +874,7 @@ button { font: inherit; color: inherit; }
         <h2>Wat er achter de knop zit</h2>
         <ul class="checks">
           <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>De knop staat alleen in de mail als er een video aan de factuur hangt. Andere facturen blijven zoals ze zijn.</span></li>
-          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>De knop opent de klantpagina: de video, het 3D-model en jullie contactgegevens.</span></li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>De knop opent de klantpagina: de video, het 3D-model met de foto's en jullie contactgegevens.</span></li>
           <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>In de link staat geen naam of adres. Zonder de link is de pagina niet te vinden.</span></li>
           <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>De klant hoeft nergens in te loggen.</span></li>
           <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>Bij de factuur in Odoo komt een interne notitie met de link. Daar krijgt de klant geen mail van.</span></li>
@@ -903,13 +898,13 @@ button { font: inherit; color: inherit; }
       <li class="step" data-tone="voor">
         <div>
           <h3>Perceel afbakenen <span class="who">Medewerker</span></h3>
-          <p>Het systeem stelt de perceelgrens uit het Kadaster voor. De medewerker controleert hem en schuift hem zo nodig recht, of trekt zelf een kader. Alles daarbuiten, zoals tuinen van de buren, auto's op straat en voorbijgangers, wordt uit de scan geknipt en komt niet in de video of op de klantpagina. In dit voorbeeld blijft de buurt staan; zet in het 3D-model "Perceelgrens" aan om te zien waar de grens loopt.</p>
+          <p>Het systeem stelt de perceelgrens uit het Kadaster voor; die is indicatief. De medewerker controleert hem en past hem zo nodig aan, of tekent zelf de grens of een kader. Alles daarbuiten, zoals tuinen van de buren, auto's op straat en voorbijgangers, wordt uit de scan geknipt en komt niet in de video of op de klantpagina. In dit voorbeeld blijft de buurt staan; zet in het 3D-model "Perceelgrens" aan om te zien waar de grens loopt.</p>
         </div>
       </li>
       <li class="step" data-tone="voor">
         <div>
           <h3>Problemen markeren <span class="who">Medewerker</span></h3>
-          <p>Rode markeringen op het dak of in de tuin, met vaste labels zoals "Nestplaats duiven", "Rattenholen" of "Mierennest". Eigen tekst mag ook. Foto's van de telefoon gaan mee met de markering, want een rattenhol of een nest in een boom is op een scan vaak nauwelijks te zien. De klant ziet ze door op de markering te klikken; locatie- en cameragegevens worden er eerst uit gehaald.</p>
+          <p>Rode markeringen op het dak, op de oprit of in de tuin, met vaste labels zoals "Nestplaats duiven", "Rattenholen" of "Mierennest". Eigen tekst mag ook. Bij elke markering kan de medewerker foto's van de telefoon zetten, want een rattenhol of een nest in een boom is op een scan vaak nauwelijks te zien. De klant ziet die foto's door op de markering te klikken; locatie- en cameragegevens worden er eerst uit gehaald.</p>
         </div>
       </li>
       <li class="step" data-tone="na">
@@ -921,13 +916,13 @@ button { font: inherit; color: inherit; }
       <li class="step" data-tone="na">
         <div>
           <h3>Oplossingen markeren en video maken <span class="who">Medewerker + systeem</span></h3>
-          <p>Groene markeringen, bijvoorbeeld "Gaas rond panelen geplaatst" of "Lokdoos geplaatst", ook weer met foto's. Een rode markering is met één klik over te nemen in de tweede scan. Daarna op "Video maken" klikken. De video vliegt eerst rond over het hele perceel vóór het werk en langs de problemen, daarna rond na het werk en langs de oplossingen, met jullie logo erin. Komt de camera bij een markering, dan kan de foto even in beeld komen. In de video en op de klantpagina staat alleen de plaats, nooit de straat of het huisnummer.</p>
+          <p>Groene markeringen, bijvoorbeeld "Gaas rond panelen geplaatst" of "Lokdoos geplaatst", ook weer met foto's. Een rode markering is met één klik over te nemen in de tweede scan. Daarna op "Video maken" klikken. De video vliegt eerst één keer rond het hele perceel zoals het vóór het werk was en gaat dan langs de problemen. Daarna hetzelfde na het werk, langs de oplossingen. Jullie logo staat erin. Komt de camera bij een markering, dan kan de foto even in beeld komen. In de video en op de klantpagina staat standaard alleen de plaats, niet de straat of het huisnummer.</p>
         </div>
       </li>
       <li class="step">
         <div>
           <h3>Koppelen aan de factuur <span class="who">Medewerker</span></h3>
-          <p>De factuur van de klant in Odoo kiezen, vóórdat die verstuurd wordt. De link komt bij de factuur te staan en de factuurmail krijgt de knop "Bekijk de video van het dak". Is de factuur al weg, dan gaat de link los mee in een mail of WhatsApp.</p>
+          <p>De factuur van de klant in Odoo kiezen, vóórdat die verstuurd wordt. De link komt bij de factuur te staan en de factuurmail krijgt de knop "Bekijk de video van het werk". Is de factuur al weg, dan gaat de link los mee in een mail of WhatsApp.</p>
         </div>
       </li>
     </ol>
@@ -987,7 +982,7 @@ button { font: inherit; color: inherit; }
 </main>
 
 <footer class="foot">
-  <div class="wrap">Voorbeeld met een fictieve woning en verzonnen gegevens. In het echte systeem ziet de klant de dronescan van de eigen woning en is de video een gewoon MP4-bestand.</div>
+  <div class="wrap">Voorbeeld met een fictieve woning en buurt, nagemaakte foto's en verzonnen gegevens. In het echte systeem ziet de klant de dronescan van het eigen perceel en de foto's van de medewerker, en is de video een gewoon MP4-bestand.</div>
 </footer>
 
 <script>
@@ -6276,39 +6271,30 @@ function updatePins(showPhase, activeId) {
   /* Cards and labels never overlap: the active and nearest visible pins win. */
   shown.sort((a, b) => (b.active - a.active) || (a.occ - b.occ) || (a.dist - b.dist));
   const boxes = [];
-  const hit = (b) => boxes.some((o) => b.x < o.x + o.w + 4 && b.x + b.w + 4 > o.x && b.y < o.y + o.h + 4 && b.y + b.h + 4 > o.y);
+  const overlaps = (b, o) => b.x < o.x + o.w + 4 && b.x + b.w + 4 > o.x && b.y < o.y + o.h + 4 && b.y + b.h + 4 > o.y;
+  const hit = (b) => boxes.some((o) => overlaps(b, o));
+  /* In 3D mode every visible pin head is reserved up front, so a label or card never covers a pin placed after it. */
+  const heads = state.mode === 'explore' ? shown.filter((e) => !e.occ).map((e) => ({ x: e.x - 15, y: e.y - 45, w: 30, h: 30, p: e.p })) : [];
+  const hitOther = (b, self) => hit(b) || heads.some((h) => h.p !== self && overlaps(b, h));
   const withCards = state.mode === 'explore' && state.notes;
   const narrow = viewW < 640;
   const shownCards = new Set();
   for (const e of shown) {
     const head = { x: e.x - 15, y: e.y - 45, w: 30, h: 30 };
     if (state.mode === 'video' && !e.occ && !e.active && hit(head)) { e.p.el.hidden = true; continue; }
-    if (withCards && !e.occ && narrow && e.active) {
-      /* Phones: the active note docks at the bottom of the viewer instead of floating. */
-      shownCards.add(e.p);
-      if (e.p.card.hidden) e.p.card.hidden = false;
-      e.p.card.classList.add('is-docked');
-      e.p.card.classList.remove('is-below');
-      if (e.p.cardLast !== 'dock') { e.p.card.style.transform = `translate(8px, ${(viewH - 8 - (e.p.card.offsetHeight || 70)).toFixed(1)}px)`; e.p.cardLast = 'dock'; }
-      boxes.push({ x: 8, y: viewH - 8 - (e.p.card.offsetHeight || 70), w: e.p.card.offsetWidth || 300, h: e.p.card.offsetHeight || 70 }, head);
-      e.p.el.classList.add('has-card');
-      e.p.el.classList.remove('no-label', 'label-left');
-      continue;
-    }
     if (withCards && !e.occ && !narrow) {
       const cw = 196;
-      if (e.p.card.hidden) { e.p.card.hidden = false; e.p.card.classList.remove('is-docked'); e.p.cardH = e.p.card.offsetHeight; e.p.card.hidden = true; }
+      if (e.p.card.hidden) { e.p.card.hidden = false; e.p.cardH = e.p.card.offsetHeight; e.p.card.hidden = true; }
       const ch = e.p.cardH || 190;
       let box = null, below = false;
       for (const [dx, under] of [[0, false], [-0.62, false], [0.62, false], [0, true], [-0.62, true], [0.62, true]]) {
         const x = Math.max(6, Math.min(viewW - cw - 6, e.x - cw / 2 + dx * cw));
         const b = { x, y: under ? e.y + 14 : e.y - 54 - ch, w: cw, h: ch };
-        if (b.y >= 6 && b.y + ch <= viewH - 6 && !hit(b)) { box = b; below = under; break; }
+        if (b.y >= 6 && b.y + ch <= viewH - 6 && !hitOther(b, e.p)) { box = b; below = under; break; }
       }
       if (box) {
         shownCards.add(e.p);
         if (e.p.card.hidden) e.p.card.hidden = false;
-        e.p.card.classList.remove('is-docked');
         e.p.card.classList.toggle('is-below', below);
         const tr = `translate(${box.x.toFixed(1)}px, ${box.y.toFixed(1)}px)`;
         if (tr !== e.p.cardLast) { e.p.card.style.transform = tr; e.p.cardLast = tr; }
@@ -6329,8 +6315,9 @@ function updatePins(showPhase, activeId) {
       continue;
     }
     if (!e.occ) {
-      if (!hit(right) && right.x + right.w <= viewW) place = 'right';
-      else if (!hit(left) && left.x >= 0) place = 'left';
+      const hitHead = (b) => heads.some((h) => h.p !== e.p && overlaps(b, h));
+      if (!hit(right) && !hitHead({ ...right, x: e.x + 15, w: right.w - 30 }) && right.x + right.w <= viewW) place = 'right';
+      else if (!hit(left) && !hitHead({ ...left, w: left.w - 30 }) && left.x >= 0) place = 'left';
     }
     e.p.el.classList.toggle('no-label', !place);
     e.p.el.classList.toggle('label-left', place === 'left');
@@ -6616,12 +6603,14 @@ function setToggle(id, key, on) {
   state[key] = on;
   $(id).setAttribute('aria-pressed', String(on));
 }
-$('#tgl-notes').addEventListener('click', () => setToggle('#tgl-notes', 'notes', !state.notes));
+$('#tgl-notes').addEventListener('click', () => { setToggle('#tgl-notes', 'notes', !state.notes); $('.sheet__note').hidden = !state.notes; });
 $('#tgl-measure').addEventListener('click', () => { state.measureSet = true; setToggle('#tgl-measure', 'measure', !state.measure); });
 $('#tgl-plot').addEventListener('click', () => {
   setToggle('#tgl-plot', 'plot', !state.plot);
-  /* Show the whole plot when the boundary is switched on from a close-up. */
-  if (state.plot && !state.fly && camera.position.distanceTo(ORBIT.target) < 25) overview();
+  if (!state.plot) return;
+  hideHint();
+  /* Show the whole plot when the boundary is switched on from a close-up; an open photo sheet stays open. */
+  if (!state.fly && camera.position.distanceTo(ORBIT.target) < 25) { controls.minDistance = 7; flyTo(orbitPose(0.06)); }
 });
 $('#btn-play').addEventListener('click', () => (state.playing ? pause() : play()));
 $('#btn-poster').addEventListener('click', play);
@@ -6783,14 +6772,15 @@ function applyPhotos() {
   });
   if (state.sheet) fillSheetPhotos(state.sheet);
 }
-/* All photos are made in small batches when the browser is idle, so the page starts at once. */
-const photoJobs = [0, 1].flatMap((k) => ['voor', 'na'].map((ph) => MARKERS[ph].map((m) => [m, k])));
+/* One photo per idle slot, close-ups first, so the page starts at once. While the video plays a slot is only
+   used when it has real spare time, so playback never stutters; a photo that isn't ready yet just doesn't show. */
+const photoJobs = [0, 1].flatMap((k) => ALL_MARKERS.map((m) => [m, k]));
 const whenIdle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 250));
-function nextPhotoBatch() {
-  const job = photoJobs.shift();
-  if (!job) return;
-  renderPhotos(job);
-  whenIdle(nextPhotoBatch);
+function nextPhoto(deadline) {
+  if (!photoJobs.length) return;
+  const spare = deadline && deadline.timeRemaining ? deadline.timeRemaining() : 0;
+  if (!state.playing || spare > 12) renderPhotos([photoJobs.shift()]);
+  whenIdle(nextPhoto);
 }
 
 /* Marker sheet under the viewer, and a lightbox for the photos. */
@@ -6895,7 +6885,7 @@ makeThumb();
 }
 renderVideoFrame();
 requestAnimationFrame(frame);
-setTimeout(() => whenIdle(nextPhotoBatch), 700);
+setTimeout(() => whenIdle(nextPhoto), 700);
 
 /* Small hook for automated checks; also mirrors the per-frame API the real render worker will use. */
 window.__preview = {
@@ -6903,7 +6893,7 @@ window.__preview = {
   seek: (t) => { setMode('video'); pause(); seek(t); },
   play, pause, setMode, setScene, focus: (id) => focusMarker(ALL_MARKERS.find((m) => m.id === id)),
   plot: (on) => { setToggle('#tgl-plot', 'plot', on); },
-  photos: () => { renderPhotos(photoJobs.splice(0).flat()); return ALL_MARKERS.map((m) => m.photos.filter(Boolean).length); },
+  photos: () => { renderPhotos(photoJobs.splice(0)); return ALL_MARKERS.map((m) => m.photos.filter(Boolean).length); },
   photoUrls: () => ALL_MARKERS.map((m) => ({ id: m.id, photos: m.photos.slice() })),
   stats: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, quality: QUALITY, ao: stage.high }),
 };
