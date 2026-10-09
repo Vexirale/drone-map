@@ -1,0 +1,10 @@
+# HTTPS in front of the API (compose profile "caddy"). Caddy gets the certificate for DOMAIN itself.
+# Behind Caddy, set TRUST_PROXY=1 and COOKIE_SECURE=true in .env, and APP_ORIGIN=https://<DOMAIN>.
+{$DOMAIN} {
+	encode zstd gzip
+	# Must match the app's maximum upload (SPEC: 3 GB scan exports through tus, from M1).
+	request_body {
+		max_size 3GB
+	}
+	reverse_proxy api:3000
+}

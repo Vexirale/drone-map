@@ -1,0 +1,82 @@
+# Production: any x86_64 Linux server with Docker.
+#   cp .env.example .env    # fill in, see docs/runbook.md (M3)
+#   docker compose up -d --build                     # behind an existing Nginx/Traefik on 127.0.0.1:3000
+#   docker compose --profile caddy up -d --build     # or let Caddy handle HTTPS for DOMAIN
+name: scan
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '5'
+
+x-app: &app
+  env_file: .env
+  environment:
+    NODE_ENV: production
+    DATABASE_URL: postgres://scan:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/scan
+    DATA_DIR: /data
+  volumes:
+    - data:/data
+  restart: unless-stopped
+  logging: *logging
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: scan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: scan
+    volumes:
+      # Postgres 18 images keep their data under /var/lib/postgresql/<major>/docker.
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U scan -d scan']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+  api:
+    <<: *app
+    build: { context: ., target: api }
+    image: scan-api
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      # Loopback only: a reverse proxy on the host (or the caddy service) publishes it.
+      - '127.0.0.1:3000:3000'
+
+  worker:
+    <<: *app
+    build: { context: ., target: worker }
+    image: scan-worker
+    depends_on:
+      # The API runs the migrations; the worker starts once it is healthy.
+      api: { condition: service_healthy }
+
+  caddy:
+    profiles: [caddy]
+    image: caddy:2-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  db:
+  data:
+  caddy-data:
+  caddy-config:

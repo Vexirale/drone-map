@@ -14,10 +14,17 @@ export const API = {
   totpVerify: '/api/auth/totp/verify',
   totpSetup: '/api/auth/totp/setup',
   totpEnable: '/api/auth/totp/enable',
+  /** POST, full session: change your own password (204). Other sessions of the user are ended. */
+  password: '/api/auth/password',
+  /** GET, admin only: the staff users (UsersResponse). */
+  users: '/api/users',
 } as const;
 
 export const email = z.string().trim().toLowerCase().max(254).pipe(z.email());
-const totpCode = z.string().trim().regex(/^\d{6}$/);
+const totpCode = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/);
 
 export const LoginRequest = z.object({
   email,
@@ -57,6 +64,14 @@ export type LoginResponse = MeResponse;
 export const TotpCodeRequest = z.object({ code: totpCode });
 export type TotpCodeRequest = z.infer<typeof TotpCodeRequest>;
 
+export const MIN_PASSWORD_LENGTH = 12;
+
+export const ChangePasswordRequest = z.object({
+  currentPassword: z.string().min(1).max(256),
+  newPassword: z.string().min(MIN_PASSWORD_LENGTH).max(256),
+});
+export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequest>;
+
 /** The secret is only ever returned while setup is in progress, never after TOTP is enabled. */
 export const TotpSetupResponse = z.object({
   secret: z.string(),
@@ -82,3 +97,19 @@ export const ApiError = z.object({
   error: z.object({ code: z.enum(ERROR_CODES) }),
 });
 export type ApiError = z.infer<typeof ApiError>;
+
+/** A staff user as the admin user list shows it. lastLoginAt is an ISO 8601 timestamp. */
+export const StaffUser = z.object({
+  id: z.uuid(),
+  email: z.string(),
+  name: z.string(),
+  role: z.enum(ROLES),
+  totpEnabled: z.boolean(),
+  active: z.boolean(),
+  lastLoginAt: z.iso.datetime().nullable(),
+});
+export type StaffUser = z.infer<typeof StaffUser>;
+
+/** GET /api/users (admin, full session). */
+export const UsersResponse = z.object({ users: z.array(StaffUser) });
+export type UsersResponse = z.infer<typeof UsersResponse>;

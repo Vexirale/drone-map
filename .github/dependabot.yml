@@ -1,0 +1,25 @@
+# Weekly, grouped, so one maintainer gets a few PRs a week instead of twenty.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+      major:
+        update-types: [major]
+    ignore:
+      # typescript-eslint supports TypeScript below 6.1 only; revisit when it supports 7.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    groups:
+      actions:
+        patterns: ['*']
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly, day: monday }

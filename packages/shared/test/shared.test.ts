@@ -8,11 +8,8 @@ describe('coordinate convention', () => {
   });
 
   it('is a proper rotation, so the frame stays right-handed', () => {
-    const cross = (a: readonly number[], b: readonly number[]) => [
-      a[1]! * b[2]! - a[2]! * b[1]!,
-      a[2]! * b[0]! - a[0]! * b[2]!,
-      a[0]! * b[1]! - a[1]! * b[0]!,
-    ].map((v) => v + 0); // + 0 turns -0 into 0
+    const cross = (a: readonly number[], b: readonly number[]) =>
+      [a[1]! * b[2]! - a[2]! * b[1]!, a[2]! * b[0]! - a[0]! * b[2]!, a[0]! * b[1]! - a[1]! * b[0]!].map((v) => v + 0); // + 0 turns -0 into 0
     // east x north = up must hold after the mapping as well.
     expect(cross(enuToThree([1, 0, 0]), enuToThree([0, 1, 0]))).toEqual([...enuToThree([0, 0, 1])]);
   });

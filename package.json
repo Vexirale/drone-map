@@ -19,7 +19,8 @@
     "db:generate": "pnpm --filter @scan/server db:generate",
     "db:migrate": "pnpm --filter @scan/server db:migrate",
     "user:add": "pnpm --filter @scan/server user:add",
-    "e2e": "playwright test --config e2e/playwright.config.ts"
+    "e2e": "playwright test --config e2e/playwright.config.ts",
+    "user:reset-totp": "pnpm --filter @scan/server user:reset-totp"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

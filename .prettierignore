@@ -3,3 +3,5 @@ preview/
 bench/
 apps/server/drizzle/
 **/dist/
+SPEC.md
+PLAN.md

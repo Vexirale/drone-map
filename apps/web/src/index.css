@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens, taken from the clickable preview (preview/src/page.html).
+ * Red = "Voor" and problems, green = "Na" and solutions (SPEC: Branding).
+ *
+ * The default Tailwind palette is switched off, so only these colours exist and the app stays
+ * consistent: use bg-surface, text-muted, border-line, text-voor and so on.
+ * Fonts: Tailwind's default sans stack is the system font stack. No web fonts (privacy).
+ */
+@theme {
+  --color-*: initial;
+  --color-bg: #f2f5f1;
+  --color-surface: #ffffff;
+  --color-surface-2: #e9eee8;
+  --color-ink: #15201a;
+  --color-muted: #56635b;
+  --color-line: #d6ded7;
+  --color-voor: #c22f28;
+  --color-voor-soft: #f9e4e2;
+  --color-na: #1a7642;
+  --color-na-soft: #dcf0e3;
+  --color-primary: #15201a;
+  --color-on-primary: #ffffff;
+  /* Header bar: dark in both themes, as in the preview. */
+  --color-bar: #15201a;
+  --color-bar-ink: #eaf0eb;
+  --color-bar-muted: #9caaa1;
+  /* Brighter red and green for the logo on the dark header bar. */
+  --color-voor-bright: #ef5b51;
+  --color-na-bright: #3dbb72;
+  --color-focus: #2e6bd6;
+
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgb(21 32 26 / 0.06), 0 8px 24px rgb(21 32 26 / 0.07);
+}
+
+/* Dark mode follows the system setting. The same tokens get dark values, so components need no dark: variants. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0e1411;
+    --color-surface: #161e1a;
+    --color-surface-2: #1d2722;
+    --color-ink: #e6ede8;
+    --color-muted: #9aa89f;
+    --color-line: #2b3631;
+    --color-voor: #ef5b51;
+    --color-voor-soft: #3a1e1c;
+    --color-na: #3dbb72;
+    --color-na-soft: #15301f;
+    --color-primary: #e6ede8;
+    --color-on-primary: #0e1411;
+    --color-bar: #080c0a;
+    --color-bar-ink: #e6ede8;
+    --color-bar-muted: #8d9a92;
+    --color-focus: #7ea8ff;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* One visible focus ring for every focusable element, keyboard only. */
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Respect "reduce motion": no animations or transitions at all. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
