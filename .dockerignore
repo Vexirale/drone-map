@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+.git
+.github
+.env
+.env.*
+!.env.example
+data
+samples
+preview
+bench
+docs
+e2e
+coverage
+**/*.log

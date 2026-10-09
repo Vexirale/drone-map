@@ -1,10 +1,10 @@
 # Plan
 
-Status on 2026-10-08: the clickable preview is done and merged (`preview/`). M0 has not started; it waits for an OK on the decisions in section 1 and the answers in section 7. `SPEC.md` holds the requirements; this file holds how I intend to build them, with the numbers behind the choices.
+Status on 2026-10-09: the clickable preview is done and merged (`preview/`). The 10 decisions in section 1 were approved on 2026-10-09 and M0 is built (scaffold, login with TOTP, Docker, CI, `docs/architecture.md`). M1 waits for the answers in section 7, above all a real whole-property export. `SPEC.md` holds the requirements; this file holds how I intend to build them, with the numbers behind the choices.
 
-## 1. Decisions waiting for your OK
+## 1. Decisions (approved 2026-10-09)
 
-Proposed in the first planning round, still open:
+Proposed in the first planning round:
 
 1. **One `apps/server` instead of `apps/api` + `apps/worker`.** Same code, two entrypoints (API, worker), two Docker images (slim API, heavy worker with Chromium, ffmpeg, later GDAL). The API also serves the built web app. Saves a package of shared server code. Scene code lives in `apps/web`, because the render route is a web route.
 2. **Hand-rolled auth.** argon2id, DB sessions, `otpauth` for TOTP, Fastify rate limiting. About 300 lines, no auth framework.
