@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Notes for whoever works on this repo next (a future Claude session or the maintainer). Requirements: `SPEC.md`. Decisions and measured numbers: `PLAN.md`. Design for all phases: `docs/architecture.md`.
+Notes for whoever works on this repo next (a future Claude session or the maintainer). Requirements: `SPEC.md`. Decisions and measured numbers: `PLAN.md`. Design for all phases: `docs/architecture.md`. Measurement methods: `docs/measurements.md`. Google Cloud hosting (proposal): `docs/gcp-hosting.md`.
 
 ## Commands
 
@@ -24,7 +24,7 @@ docker build --target api . / --target worker .     # production images; compose
 
 ## Layout
 
-- `apps/server`: Fastify API and pg-boss worker, one codebase (`node src/main.ts api|worker`). `src/auth/` login, sessions, TOTP; `src/db/` Drizzle schema and migrations; `src/storage/` file storage; `src/queue.ts` queues.
+- `apps/server`: Fastify API and pg-boss worker, one codebase (`node src/main.ts api|worker`). `src/auth/` login, sessions, TOTP; `src/db/` Drizzle schema and migrations; `src/storage/` file storage (local disk now, Cloud Storage in M3b); `src/queue.ts` queues.
 - `apps/web`: React staff app (Vite, Tailwind 4, React Router 8, TanStack Query). `src/nl.ts` holds every Dutch string.
 - `packages/shared`: API contract (zod), roles, coordinate conversion, branding defaults. Imported as TypeScript source.
 - `e2e/`: Playwright. `preview/` and `bench/`: standalone demo and benchmarks, not part of the app or the workspace.
@@ -37,7 +37,9 @@ docker build --target api . / --target worker .     # production images; compose
 - **Coordinates:** stored as job-local metres east/north/up; convert to three.js only with `enuToThree`/`threeToEnu` from `@scan/shared`.
 - **Odoo:** every write supports dry-run (`ODOO_DRY_RUN`), every call is logged, never touch the production database without asking first.
 - **Audit:** state changes by people get an `audit()` row; never IPs, passwords, codes or secrets in it. Add new actions to the `AuditAction` union.
-- **Secrets only in `.env`.** Never commit secrets, customer data or real scans (`samples/` and `data/` are gitignored).
+- **Secrets only in `.env`** (or `<NAME>_FILE`; Secret Manager in production). Never commit secrets, customer data or real scans (`samples/` and `data/` are gitignored).
+- **Portable:** Google-specific code only in the storage adapter and `infra/gcp/`. Secrets reach the app as files (`<NAME>_FILE`), never through a Google SDK in the app.
+- **Measurements are traceable:** follow `docs/measurements.md` exactly; a change to a method or threshold is a new algorithm version, revisions are never updated, and issued quotes and reports keep their values. Dutch number format (`12,4 m²`) everywhere.
 - Tests that touch the database use `scan_test` (wiped per run) or `scan_e2e`; the setup refuses any other database name.
 - Each milestone gets its own branch and PR; run `pnpm check` (and `pnpm e2e` when the UI or auth changes) before pushing.
 
@@ -57,7 +59,8 @@ Login checks the password (argon2id) and creates a `'password'`-stage session wh
 - **Fastify parses `text/plain` by default**; the app removes that parser so bodies must be JSON (CSRF).
 - **The rate limiter is in memory**: fine for one API process. A second process would need a shared store.
 - **The router decodes percent-escapes** (`/%61pi/...` matches `/api/...`), so never guard by testing the raw `request.url`; the Origin check covers every mutating request.
-- **Database password in Docker:** passed as `PGPASSWORD`, never inside `DATABASE_URL`, so `/ @ # ?` in it cannot break the URL.
+- **Database password in Docker:** passed as `DATABASE_PASSWORD` (or `DATABASE_PASSWORD_FILE`), never written into `DATABASE_URL` by hand; `config.ts` inserts it percent-encoded, so `/ @ # ? %` in it cannot break the URL.
+- **Storage `put` returns `{ size, sha256 }`**; record both in `files`. Measurements cite `work.glb` by that hash.
 - **Odoo 19 CLI:** demo data is off by default (`--with-demo` to add it); `odoo db init <name> --language nl_NL --country NL` creates a database; the image's entrypoint appends DB flags at the end, which `odoo db …` rejects, so `scripts/odoo-init.sh` passes them explicitly with `--entrypoint odoo`.
 - **Playwright:** pinned to 1.56.1 because the cloud container ships Chromium build 1194; CI installs its own browser.
 - Measured while benchmarking (PLAN.md section 4), for M1:

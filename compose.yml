@@ -1,5 +1,6 @@
-# Production: any x86_64 Linux server with Docker.
-#   cp .env.example .env    # fill in, see docs/runbook.md (M3)
+# Production: any x86_64 Linux server with Docker. On Google Cloud the VM runs this file with an
+# override from infra/gcp/ (Cloud Storage, secrets from Secret Manager); see docs/gcp-hosting.md.
+#   cp .env.example .env    # fill in, see docs/runbook.md (M3b)
 #   docker compose up -d --build                     # behind an existing Nginx/Traefik on 127.0.0.1:3000
 #   docker compose --profile caddy up -d --build     # or let Caddy handle HTTPS for DOMAIN
 name: scan
@@ -14,9 +15,10 @@ x-app: &app
   env_file: .env
   environment:
     NODE_ENV: production
-    # The password is passed separately (node-postgres reads PGPASSWORD), so any character works in it.
+    # The password is passed separately; the app puts it into the URL percent-encoded, so any
+    # character works in it. DATABASE_PASSWORD_FILE works too (Docker secrets).
     DATABASE_URL: postgres://scan@db:5432/scan
-    PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     DATA_DIR: /data
   volumes:
     - data:/data

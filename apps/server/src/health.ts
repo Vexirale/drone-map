@@ -4,7 +4,8 @@ import type { FastifyInstance } from 'fastify';
 const DB_TIMEOUT_MS = 2000;
 
 /**
- * GET /health for Docker and Uptime Kuma: 200 when the database answers, 503 otherwise.
+ * GET /health for Docker and the uptime check (Cloud Monitoring in production): 200 when the
+ * database answers, 503 otherwise.
  * Later milestones add failed renders and failing Odoo calls here (SPEC: Operations), so one
  * monitor covers everything.
  */

@@ -1,4 +1,5 @@
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
@@ -93,6 +94,48 @@ describe('config', () => {
     expect(loadConfig({ ...base, APP_ORIGIN: 'https://scan.example.nl/' }).appOrigin).toBe('https://scan.example.nl');
     expect(() => loadConfig({ ...base, APP_ORIGIN: 'https://scan.example.nl/app' })).toThrow(/APP_ORIGIN/);
   });
+
+  it('reads secrets from <NAME>_FILE (Docker secrets, Secret Manager on Google Cloud)', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'scan-secrets-'));
+    try {
+      await writeFile(path.join(dir, 'odoo'), 'odoo-key-123\n');
+      await writeFile(path.join(dir, 'admin'), 'een lang wachtwoord\r\n');
+      const c = loadConfig({
+        ...base,
+        ODOO_API_KEY_FILE: path.join(dir, 'odoo'),
+        ADMIN_PASSWORD_FILE: path.join(dir, 'admin'),
+      });
+      expect(c.odoo.apiKey).toBe('odoo-key-123');
+      expect(c.admin.password).toBe('een lang wachtwoord');
+
+      // The file content is validated like the variable, and never printed.
+      await writeFile(path.join(dir, 'short'), 'kort');
+      expect(() => loadConfig({ ...base, ADMIN_PASSWORD_FILE: path.join(dir, 'short') })).toThrow(
+        /ADMIN_PASSWORD: must be at least 12/,
+      );
+      expect(() => loadConfig({ ...base, ODOO_API_KEY: 'x', ODOO_API_KEY_FILE: path.join(dir, 'odoo') })).toThrow(
+        /ODOO_API_KEY_FILE: set either ODOO_API_KEY or ODOO_API_KEY_FILE/,
+      );
+      try {
+        loadConfig({ ...base, ODOO_API_KEY_FILE: path.join(dir, 'missing') });
+        expect.unreachable();
+      } catch (err) {
+        expect((err as Error).message).toContain('ODOO_API_KEY_FILE: cannot read the file');
+        expect((err as Error).message).not.toContain(dir);
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('puts DATABASE_PASSWORD into the URL percent-encoded, so any character works', () => {
+    const password = 'p/a@s#s?w0rd%41 :é';
+    const c = loadConfig({ DATABASE_URL: 'postgres://scan@db:5432/scan', DATABASE_PASSWORD: password });
+    const url = new URL(c.databaseUrl);
+    expect(decodeURIComponent(url.password)).toBe(password);
+    expect([url.username, url.host, url.pathname]).toEqual(['scan', 'db:5432', '/scan']);
+    expect(loadConfig(base).databaseUrl).toBe(base.DATABASE_URL);
+  });
 });
 
 describe('staff network restriction', () => {
@@ -136,8 +179,16 @@ describe('local disk storage', () => {
   });
 
   it('writes, reads, stats and deletes buffers and streams', async () => {
-    await storage.put('jobs/j1/a.txt', Buffer.from('hallo'));
-    await storage.put('jobs/j1/b.txt', Readable.from(['stream ', 'data']));
+    // SHA-256 of 'hallo' and of 'stream data' (strings in a stream count as UTF-8 bytes).
+    expect(await storage.put('jobs/j1/a.txt', Buffer.from('hallo'))).toEqual({
+      size: 5,
+      sha256: 'd3751d33f9cd5049c4af2b462735457e4d3baf130bcbb87f389e349fbaeb20b9',
+    });
+    expect(await storage.put('jobs/j1/b.txt', Readable.from(['stream ', 'data']))).toEqual({
+      size: 11,
+      sha256: createHash('sha256').update('stream data').digest('hex'),
+    });
+    expect((await storage.put('jobs/j1/c.txt', Readable.from(['é']))).size).toBe(2);
     expect(await readFile(path.join(root, 'jobs/j1/a.txt'), 'utf8')).toBe('hallo');
     const chunks: Buffer[] = [];
     for await (const c of storage.getStream('jobs/j1/b.txt')) chunks.push(c as Buffer);

@@ -1,10 +1,10 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, rename, rm, stat as fsStat } from 'node:fs/promises';
 import path from 'node:path';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { type Storage, assertValidKey } from './storage.ts';
+import { type PutResult, type Storage, assertValidKey } from './storage.ts';
 
 /**
  * Files under one root directory (DATA_DIR). Writes go to a temporary file next to the target and
@@ -22,26 +22,31 @@ export class LocalDiskStorage implements Storage {
     return path.join(this.root, ...key.split('/'));
   }
 
-  async put(key: string, data: Buffer | Readable): Promise<void> {
+  async put(key: string, data: Buffer | Readable): Promise<PutResult> {
     const target = this.pathFor(key);
     await mkdir(path.dirname(target), { recursive: true });
     const temp = `${target}.${randomBytes(6).toString('hex')}.tmp`;
+    const hash = createHash('sha256');
+    let size = 0;
     try {
-      if (Buffer.isBuffer(data)) {
-        await pipeline(
-          async function* () {
-            yield data;
-          },
-          createWriteStream(temp, { flags: 'wx' }),
-        );
-      } else {
-        await pipeline(data, createWriteStream(temp, { flags: 'wx' }));
-      }
+      await pipeline(
+        Buffer.isBuffer(data) ? Readable.from([data]) : data,
+        async function* (chunks: AsyncIterable<Buffer | string>) {
+          for await (const chunk of chunks) {
+            const bytes = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+            hash.update(bytes);
+            size += bytes.length;
+            yield bytes;
+          }
+        },
+        createWriteStream(temp, { flags: 'wx' }),
+      );
       await rename(temp, target);
     } catch (err) {
       await rm(temp, { force: true });
       throw err;
     }
+    return { size, sha256: hash.digest('hex') };
   }
 
   getStream(key: string): Readable {
