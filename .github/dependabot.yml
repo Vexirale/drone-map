@@ -23,3 +23,8 @@ updates:
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly, day: monday }
+    ignore:
+      # Node majors are a deliberate move from one LTS to the next (24 -> 26), not an automatic bump:
+      # odd majors are short-lived, and the Dockerfile, CI and .nvmrc must move together.
+      - dependency-name: node
+        update-types: [version-update:semver-major]

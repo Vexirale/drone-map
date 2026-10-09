@@ -5,7 +5,8 @@
 # The server has no build step: Node runs the TypeScript sources directly (type stripping).
 
 FROM node:24-bookworm-slim AS base
-RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
+# npm instead of corepack: Node 25 and later no longer ship corepack. Keep in step with packageManager.
+RUN npm install --global pnpm@10.28.0
 WORKDIR /app
 
 # Manifests first, so dependency layers are cached until a package.json or the lockfile changes.
