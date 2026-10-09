@@ -150,7 +150,7 @@ pg-boss 12 in schema `pgboss` of the same database (`apps/server/src/queue.ts`).
 | `photo.process`       | `{ markerPhotoId }`           | HEIC → JPEG, EXIF orientation, strip metadata, resize, thumbnail, read `taken_at`                           | 2 / 2 min         | M2        |
 | `render.video`        | `{ renderId }`                | Playwright frames → ffmpeg MP4 + poster (§12)                                                               | 1 / 60 min        | M2        |
 | `odoo.link`           | `{ jobId, moveId }`           | Write the video field, post the internal note (§14)                                                         | 3 / 2 min         | M3        |
-| `backup.db`           | none (nightly)                | `pg_dump` to the backup bucket (only with Postgres on the VM, §18)                                          | 2 / 30 min        | M3b       |
+| `backup.db`           | none (every 6 hours)          | `pg_dump` to the backup bucket (only with Postgres on the VM, §18)                                          | 2 / 30 min        | M3b       |
 | `measurement.compute` | `{ revisionId }`              | Re-project the picked points onto `work.glb`, compute values and σ, render the highlighted screenshot (§15) | 2 / 10 min        | M4        |
 | `report.generate`     | `{ reportId }`                | Inspection report PDF with the "Meetverantwoording" appendix                                                | 1 / 10 min        | M5        |
 
@@ -286,7 +286,7 @@ The camera path is a versioned JSON document stored in `camera_paths` and frozen
 
 - `GET /health`: 200 when the database answers, otherwise 503; later also red on failed renders and failing Odoo calls. Cloud Monitoring uptime checks poll it and a customer page and send e-mail alerts (§18). This replaces Uptime Kuma (PLAN.md decision 6, superseded).
 - Logs: JSON on stdout, rotated by Docker (10 MB × 5 per container). On Google Cloud the Ops Agent ships them to Cloud Logging, where log-based metrics count failed renders and failed Odoo calls for the alerts.
-- Backups (M3b): daily VM disk snapshots, a nightly `pg_dump` to a separate backup bucket, soft delete on the buckets and a nightly copy of the files to a second EU region. The restore procedure is tested once as a full restore into a fresh environment and written down in `docs/runbook.md`.
+- Backups (M3b): daily VM disk snapshots, a `pg_dump` every 6 hours to a backup bucket in europe-west1, soft delete on all buckets and a nightly mirror of the files to a second bucket in europe-west1. The restore procedure is tested once as a full restore into a fresh environment and written down in `docs/runbook.md`.
 - `docs/server-requirements.md` (M3b): CPU, RAM and disk per phase from the measured numbers (4 vCPU, 16 GB RAM, about 2.5 GB disk per job during processing), also for servers outside Google Cloud.
 
 ## 17. Testing
@@ -301,7 +301,8 @@ The camera path is a versioned JSON document stored in `camera_paths` and frozen
 `docs/gcp-hosting.md` is the proposal, with the monthly cost; nothing of it is built before the OK. In short:
 
 - One Compute Engine VM in europe-west4 (Ubuntu LTS, e2-standard-4) runs `compose.yml` with an override from `infra/gcp/`: images from Artifact Registry, `STORAGE_DRIVER=gcs`, secrets mounted as files. Static IP, only ports 80 and 443 open, SSH only through IAP, automatic security updates.
-- Files in a Cloud Storage bucket in europe-west4 (§7); backups in a second bucket in another EU region.
+- Files in a Cloud Storage bucket in europe-west4 (§7); backups in two buckets in europe-west1 (a nightly mirror of the files, and the database dumps).
+- Postgres stays in Docker on the VM rather than Cloud SQL (reasons and prices in `docs/gcp-hosting.md`).
 - The VM's attached service account has only the roles it needs (bucket objects, its secrets, signing its own URLs, logs and metrics, pulling images). No key files anywhere.
 - Secrets in Secret Manager. A boot unit on the VM reads them with the VM's credentials into a tmpfs, and compose mounts them as files (§4). So the secrets "adapter" is a few lines of shell in `infra/gcp/`, and the app has no Google code for secrets.
 - Everything is OpenTofu under `infra/gcp/` (state in a versioned bucket), deployed with one command (build, push to Artifact Registry, `docker compose pull && up -d` on the VM through IAP).

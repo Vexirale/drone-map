@@ -226,8 +226,8 @@ Phase 2 and 3 additions are in their own sections below.
 Staff and customers must be able to see how each number was calculated, so quotes can be trusted and checked. The methods below are fixed; `docs/measurements.md` documents each one with its formula and a worked example, and the code follows that document. The inputs these methods need are stored from the first upload in M1 (see "Phase 1: 3D input").
 
 Frame and points:
-- All math runs in the job-local metric frame: metres east, north and up from the model's projected coordinate system, minus the job origin. A model in a geographic system (degrees) is reprojected to the job's projected system first. The projection's scale distortion at the job location is computed and stated in `docs/measurements.md`: @@SCALE@@, negligible at roof scale.
-- Points are picked on the light browser mesh (`web.glb`) for speed. The server computes the final values on the full-detail mesh (`work.glb`) by re-projecting each picked point along the same view ray (from the camera through the picked point, first hit). Both points are stored, and a difference above @@FLAG@@ is flagged for the operator to check.
+- All math runs in the job-local metric frame: metres east, north and up from the model's projected coordinate system, minus the job origin. A model in a geographic system (degrees) is reprojected to the job's projected system first. The projection's scale distortion at the job location is computed and stated in `docs/measurements.md`: at Eindhoven −38 ppm in UTM 31N and −53 ppm in RD New, so 0.4 to 0.5 mm on a 10 m edge (at most 4 mm anywhere in the Netherlands), negligible at roof scale.
+- Points are picked on the light browser mesh (`web.glb`) for speed. The server computes the final values on the full-detail mesh (`work.glb`) by re-projecting each picked point along the same view ray (from the camera through the picked point, first hit). Both points are stored, and a difference above max(10 cm, 2σ) is flagged for the operator to check.
 
 Methods (exactly these):
 - Distance: the straight 3D distance between two points. Length: the sum of the 3D segment lengths of a polyline.
@@ -238,7 +238,7 @@ Methods (exactly these):
 
 Uncertainty:
 - The model's effective resolution is the median texel size of the mesh in cm, or the GSD from the DJI Terra quality report when the export contains one.
-- The point uncertainty σ follows from that resolution (@@SIGMA@@) and is propagated to every value: distance, length, height, both areas and the pitch. For polygon areas: var(A) = σ²/4 · Σ |v(i+1) − v(i−1)|², with independent vertex errors σ. The ± shown is 2σ, rounded up.
+- The point uncertainty σ follows from that resolution (σ = 2 × the resolution per axis, see `docs/measurements.md`) and is propagated to every value: distance, length, height, both areas and the pitch. For polygon areas: var(A) = σ²/4 · Σ |v(i+1) − v(i−1)|², with independent vertex errors σ. The ± shown is 2σ, rounded up.
 - Control measurement ("controlemeting"): the operator can enter a tape-measured value for any measurement, and the deviation is stored. Settings show the number of control measurements and their average and maximum deviation. Once there are enough (default 10 of a kind: lengths and heights in cm, areas in %), the ± shown to customers comes from those real deviations instead of the estimate.
 - Never show an accuracy number that isn't backed by the resolution estimate or by control measurements. Without either, the value is shown without ±.
 
@@ -284,7 +284,7 @@ Production runs on Google Cloud in europe-west4 (Netherlands). Propose the setup
 - Portability: Google-specific code only inside the storage and secrets adapters. The same images run on any Linux server with Docker, with local disk storage and secrets from `.env`.
 - Compute: one Compute Engine VM (Ubuntu LTS, about e2-standard-4) running the Docker Compose stack (api, worker, Caddy), with a static IP and automatic security updates.
 - Files: a Cloud Storage bucket in europe-west4 behind the storage interface. Lifecycle rules enforce the retention (originals deleted after 90 days), soft delete is on, and customer pages get short-lived signed URLs for videos and models. Large uploads go straight from the browser to the bucket (resumable uploads).
-- Database: Postgres on Cloud SQL (small instance, private IP, automated backups and point-in-time recovery), unless Postgres in Docker on the VM with dumps to the bucket is the better trade-off at 5 jobs a month. @@DB@@
+- Database: Postgres on Cloud SQL (small instance, private IP, automated backups and point-in-time recovery), unless Postgres in Docker on the VM with dumps to the bucket is the better trade-off at 5 jobs a month. Proposed: it is. Postgres stays in Docker on the VM, with a dump every 6 hours to a backup bucket in another EU region (`docs/gcp-hosting.md`, decision 1).
 - Security: the VM uses its attached service account with least-privilege roles, no JSON key files. Secrets (Odoo API key, database password, any signing key) live in Secret Manager. SSH only through IAP, no public port 22; only 80 and 443 are open.
 - Backups: a daily disk snapshot schedule, database backups, bucket soft delete plus a nightly copy to a second EU region. A full restore is tested once and documented.
 - Monitoring: Cloud Monitoring uptime checks on a customer page and on `/health`, e-mail alerts when they fail or when renders or Odoo calls keep failing, and the Ops Agent for VM logs and metrics.

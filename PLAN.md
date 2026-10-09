@@ -28,13 +28,19 @@ Traceable measurements (`docs/measurements.md` has the methods, formulas and the
 
 11. **Final values are computed on `work.glb`, not on `render.glb`.** The change request said "render.glb (or the original)". But `render.glb` is simplified to about 1.5 M triangles for the renderer, which rounds off edges and ridges by centimetres. And the original upload is deleted after 90 days, so a measurement could not be recomputed or checked later. `work.glb` is the original geometry, losslessly converted, and kept as long as the job. M1 therefore keeps `work.glb` unsimplified and unquantized.
 12. **Measurement revisions are append-only.** A database trigger refuses updates. Quotes, reports and customer pages store the revision id plus a copy of the values they showed. Each revision stores its algorithm version and every parameter it used, so a changed setting or a better algorithm never changes an old number. Recalculating is an explicit operator action that creates a new revision.
-13. **Uncertainty:** @@SIGMA_DECISION@@
+13. **Uncertainty, as worked out in `docs/measurements.md` and checked by `bench/measurements/worked-example.ts`:**
+    - σ = 2 × the resolution per axis, the middle of Pix4D's 1 to 3 GSD for relative accuracy. The ± shown is 2σ, rounded up.
+    - **The pitch ± has a floor**: √2 σ over the face's length along the slope, which is what two points at its ends give. The plane fit through hundreds of mesh points assumes independent errors and would claim ± 0.1° on a 45° roof. Photogrammetric meshes warp in correlated patches, so I show ± 0.6° there.
+    - Ground areas only count mesh within 1 m of the picked heights, so a tree crown or a facade inside the polygon cannot inflate them. Steep parts (kerbs, walls) are shown separately.
+    - Mesh-area σ comes from the numerical gradient of the clipped area. The spec gave no formula for it, and the Monte Carlo agrees within 0.4 %.
+    - Control measurements take over from 10 per kind (lengths in cm, areas in %).
+    - Quote quantities are computed in exact decimals from the value as shown, so `50 × 1.1` gives 55, not 56.
 14. **The inputs are captured from the first upload (M1),** not from M4: file hashes, coordinate systems and vertical datum, the projection scale and NAP offset at the job origin, the median texel size, the Terra quality report's GSD when present, and tool versions. That is the "store the data from M0" part. M0 itself has no scans, so nothing changes in its tables; the storage layer now returns a SHA-256 for every file it writes.
 
 Google Cloud (proposal and costs in `docs/gcp-hosting.md`):
 
 15. **Uploads go straight from the browser to the bucket** with Cloud Storage's resumable protocol, and the local disk driver implements the same protocol in the API. tus is dropped. Through the VM, every upload of up to 3 GB would pass Caddy and Node, need the VM disk as a staging area, and break on every deploy. Straight to the bucket, it uses Google's upload front ends and survives a restart of the app. The API still decides the object name and exact size, and the import verifies size and hash.
-16. **Database:** @@DB_DECISION@@
+16. **Database: Postgres stays in Docker on the VM, not Cloud SQL.** The VM is the app's single point of failure either way, so Cloud SQL adds no availability. Its cheap tiers (db-f1-micro at $8.47 a month, db-g1-small at $28.11) are shared-core, not covered by the SLA, and meant for test and development. The smallest covered tier is about $57 a month with storage, for a database of a few hundred MB. On the VM, dev, CI and production run the same Postgres 18 image. A `pg_dump` every 6 hours to a backup bucket in another EU region limits the loss to 6 hours. Moving to Cloud SQL later takes a dump, a restore and a new `DATABASE_URL`.
 17. **Secrets reach the app as files, not through a Google SDK.** A boot unit on the VM reads them from Secret Manager with the VM's own credentials into a tmpfs, and compose mounts them (`<NAME>_FILE`). The app keeps zero Google code for secrets and runs unchanged anywhere, and secrets stay out of the environment that Chromium and ffmpeg inherit. Built now: `config.ts` reads `<NAME>_FILE` and `DATABASE_PASSWORD`. There is no session secret to store: sessions are random tokens, and the database keeps only their SHA-256.
 18. **Caddy keeps doing HTTPS on the VM,** with Let's Encrypt. A Google load balancer with a managed certificate costs about $18 a month plus traffic, and adds moving parts for a single VM.
 19. **Cloud Monitoring replaces Uptime Kuma:** uptime checks on `/health` and on a customer page, log-based alerts for failing renders and Odoo calls, Ops Agent for logs and metrics, e-mail alerts.
@@ -280,6 +286,18 @@ Draft export settings for the owner, to confirm on a real job:
 - Render time with supersampling, frame capture and ffmpeg included.
 - iOS behaviour for HEIC uploads, and GPU memory limits on older iPhones.
 - Which vertical datum Terra writes in `metadata.xml` for the chosen output (ellipsoidal or NAP), and whether its quality report is part of the OBJ output folder and in what format (for the GSD).
+
+## 9. Google Cloud hosting (proposal, waiting for an OK)
+
+Full proposal: `docs/gcp-hosting.md`. One e2-standard-4 VM in europe-west4 runs the compose stack (Caddy, API, worker, Postgres 18). Files live in a Cloud Storage bucket that browsers upload to directly. Backups go to two buckets in europe-west1: a nightly mirror of the files, and a database dump every 6 hours. Secrets live in Secret Manager and reach the app as files. Cloud Monitoring checks uptime and sends alerts, a budget warns about cost, and everything is OpenTofu under `infra/gcp/`.
+
+| Monthly, USD, excl. VAT (list prices 2026-10-09) | Year 1 | After 2 years |
+| --- | --- | --- |
+| On demand | ≈ 121 | ≈ 127 |
+| 1-year commitment on the VM | ≈ 81 | ≈ 87 |
+| 3-year commitment on the VM | ≈ 61 | ≈ 67 |
+
+The VM is about 90 % of the bill; storage adds about $4 a month per 100 GB of files kept, counting the copy in the backup region. Cloud SQL instead of Postgres on the VM would add about $10 (no SLA) to $57 (smallest SLA tier) a month. Phase 4's OpenDroneMap Spot VMs add about $1 to $3 per job.
 
 ## Sources
 
