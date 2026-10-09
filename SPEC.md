@@ -226,8 +226,8 @@ Phase 2 and 3 additions are in their own sections below.
 Staff and customers must be able to see how each number was calculated, so quotes can be trusted and checked. The methods below are fixed; `docs/measurements.md` documents each one with its formula and a worked example, and the code follows that document. The inputs these methods need are stored from the first upload in M1 (see "Phase 1: 3D input").
 
 Frame and points:
-- All math runs in the job-local metric frame: metres east, north and up from the model's projected coordinate system, minus the job origin. A model in a geographic system (degrees) is reprojected to the job's projected system first. The projection's scale distortion at the job location is computed and stated in `docs/measurements.md`: @@SCALE@@, negligible at roof scale.
-- Points are picked on the light browser mesh (`web.glb`) for speed. The server computes the final values on the full-detail mesh (`work.glb`) by re-projecting each picked point along the same view ray (from the camera through the picked point, first hit). Both points are stored, and a difference above @@FLAG@@ is flagged for the operator to check.
+- All math runs in the job-local metric frame: metres east, north and up from the model's projected coordinate system, minus the job origin. A model in a geographic system (degrees) is reprojected to the job's projected system first. The projection's scale distortion at the job location is computed and stated in `docs/measurements.md`: at Eindhoven −38 ppm in UTM 31N and −53 ppm in RD New, so 0.4 to 0.5 mm on a 10 m edge (at most 4 mm anywhere in the Netherlands), negligible at roof scale.
+- Points are picked on the light browser mesh (`web.glb`) for speed. The server computes the final values on the full-detail mesh (`work.glb`) by re-projecting each picked point along the same view ray (from the camera through the picked point, first hit). Both points are stored, and a difference above max(10 cm, 2σ) is flagged for the operator to check.
 
 Methods (exactly these):
 - Distance: the straight 3D distance between two points. Length: the sum of the 3D segment lengths of a polyline.
@@ -238,7 +238,7 @@ Methods (exactly these):
 
 Uncertainty:
 - The model's effective resolution is the median texel size of the mesh in cm, or the GSD from the DJI Terra quality report when the export contains one.
-- The point uncertainty σ follows from that resolution (@@SIGMA@@) and is propagated to every value: distance, length, height, both areas and the pitch. For polygon areas: var(A) = σ²/4 · Σ |v(i+1) − v(i−1)|², with independent vertex errors σ. The ± shown is 2σ, rounded up.
+- The point uncertainty σ follows from that resolution (σ = 2 × the resolution per axis, see `docs/measurements.md`) and is propagated to every value: distance, length, height, both areas and the pitch. For polygon areas: var(A) = σ²/4 · Σ |v(i+1) − v(i−1)|², with independent vertex errors σ. The ± shown is 2σ, rounded up.
 - Control measurement ("controlemeting"): the operator can enter a tape-measured value for any measurement, and the deviation is stored. Settings show the number of control measurements and their average and maximum deviation. Once there are enough (default 10 of a kind: lengths and heights in cm, areas in %), the ± shown to customers comes from those real deviations instead of the estimate.
 - Never show an accuracy number that isn't backed by the resolution estimate or by control measurements. Without either, the value is shown without ±.
 

@@ -28,7 +28,13 @@ Traceable measurements (`docs/measurements.md` has the methods, formulas and the
 
 11. **Final values are computed on `work.glb`, not on `render.glb`.** The change request said "render.glb (or the original)". But `render.glb` is simplified to about 1.5 M triangles for the renderer, which rounds off edges and ridges by centimetres. And the original upload is deleted after 90 days, so a measurement could not be recomputed or checked later. `work.glb` is the original geometry, losslessly converted, and kept as long as the job. M1 therefore keeps `work.glb` unsimplified and unquantized.
 12. **Measurement revisions are append-only.** A database trigger refuses updates. Quotes, reports and customer pages store the revision id plus a copy of the values they showed. Each revision stores its algorithm version and every parameter it used, so a changed setting or a better algorithm never changes an old number. Recalculating is an explicit operator action that creates a new revision.
-13. **Uncertainty:** @@SIGMA_DECISION@@
+13. **Uncertainty, as worked out in `docs/measurements.md` and checked by `bench/measurements/worked-example.ts`:**
+    - σ = 2 × the resolution per axis, the middle of Pix4D's 1 to 3 GSD for relative accuracy. The ± shown is 2σ, rounded up.
+    - **The pitch ± has a floor**: √2 σ over the face's length along the slope, which is what two points at its ends give. The plane fit through hundreds of mesh points assumes independent errors and would claim ± 0.1° on a 45° roof. Photogrammetric meshes warp in correlated patches, so I show ± 0.6° there.
+    - Ground areas only count mesh within 1 m of the picked heights, so a tree crown or a facade inside the polygon cannot inflate them. Steep parts (kerbs, walls) are shown separately.
+    - Mesh-area σ comes from the numerical gradient of the clipped area. The spec gave no formula for it, and the Monte Carlo agrees within 0.4 %.
+    - Control measurements take over from 10 per kind (lengths in cm, areas in %).
+    - Quote quantities are computed in exact decimals from the value as shown, so `50 × 1.1` gives 55, not 56.
 14. **The inputs are captured from the first upload (M1),** not from M4: file hashes, coordinate systems and vertical datum, the projection scale and NAP offset at the job origin, the median texel size, the Terra quality report's GSD when present, and tool versions. That is the "store the data from M0" part. M0 itself has no scans, so nothing changes in its tables; the storage layer now returns a SHA-256 for every file it writes.
 
 Google Cloud (proposal and costs in `docs/gcp-hosting.md`):

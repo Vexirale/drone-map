@@ -2,13 +2,13 @@
 
 Status: **proposal of 2026-10-09, waiting for an OK.** Nothing here is built yet; milestone M3b builds it as OpenTofu code under `infra/gcp/`. Prices are USD list prices for europe-west4 (Eemshaven, Netherlands), read on 2026-10-09 from Google's pricing pages, excluding VAT. A billing account in euros pays Google's fixed euro price per SKU instead.
 
-**In one line:** one VM runs the app as today (Docker Compose with Caddy, API, worker and Postgres), files live in a Cloud Storage bucket that browsers upload to directly, backups go to a second bucket in another EU region, and everything is created by code. About **$120 a month** on demand, about **$80** with a one-year commitment on the VM (section 13).
+**In one line:** one VM runs the app as today (Docker Compose with Caddy, API, worker and Postgres), files live in a Cloud Storage bucket that browsers upload to directly, backups go to two buckets in Belgium (europe-west1), and everything is created by code. About **$120 a month** on demand, about **$80** with a one-year commitment on the VM (section 13).
 
 ```
  customers (share pages)        staff (browser)
           │ HTTPS                    │ HTTPS, plus uploads straight to the bucket ──────────┐
           ▼                          ▼                                                    │
- ┌─ VM "scan" · e2-standard-4 · Ubuntu LTS · static IP · ports 80/443 only ──────────────┐  │
+ ┌─ VM "scan" · e2-standard-4 · Ubuntu 26.04 · static IP · ports 80/443 only ────────────┐  │
  │  Caddy (Let's Encrypt) ─► api ─┐   worker (Chromium, ffmpeg)   postgres 18 (volume)   │  │
  └────────────────────────────────┼────────────────┬─────────────────────┬──────────────┘  │
      redirects to signed URLs     │                │ reads/writes files  │ pg_dump every 6 h │
@@ -43,7 +43,7 @@ Switching to Cloud SQL later is a dump, a restore and a new `DATABASE_URL`; the 
 ## 3. The VM
 
 - **e2-standard-4** (4 vCPU, 16 GB): the benchmark sizing (PLAN.md section 4). The renderer is the heaviest job (about 3 GB of RAM, all four cores for 10 to 35 minutes per video). n2d-standard-4 costs the same per month on demand once its automatic sustained-use discount applies, and may render faster; M2 measures that before any commitment.
-- **Ubuntu LTS**, Docker Engine from Docker's apt repository, unattended security upgrades on, with automatic reboots at 04:00 when a kernel update needs one. The `restart: unless-stopped` policy brings the stack back.
+- **Ubuntu 26.04 LTS** (supported until 2031; 24.04 LTS if Docker's repository does not support 26.04 yet when M3b starts), Docker Engine from Docker's apt repository. Google's Ubuntu images install security updates daily by themselves but never reboot; the VM is set to reboot at 04:00 when an update needs it, and `restart: unless-stopped` brings the stack back.
 - **Disk**: one 50 GB pd-balanced boot disk (OS, Docker images, Postgres data, and scratch space for the worker, which needs about 2.5 GB per job while processing).
 - **Static external IPv4**, attached to the VM; DNS `A` records for the staff app and the share domain point at it.
 - **Service account** `scan-vm` attached, with the cloud-platform scope; its roles are in section 12. No key files exist anywhere.
@@ -53,7 +53,7 @@ Switching to Cloud SQL later is a dump, a restore and a new `DATABASE_URL`; the 
 - Bucket **`<project>-files`** in europe-west4, Standard class, uniform bucket-level access, public access prevention enforced.
 - **Lifecycle**: delete objects under `jobs/` whose key contains `/original/` 90 days after creation, as a safety net under the app's own nightly retention cleanup (the app deletes the database rows and files; the rule catches anything it missed).
 - **Soft delete** 30 days (default 7): deleted and replaced objects can be restored for a month.
-- **CORS**: `PUT` and `OPTIONS` from the staff app's origin, with the `Content-Range` and `Content-Type` request headers and the `Range` response header, for the resumable uploads.
+- **Uploads**: the API opens each resumable session with the staff app's `Origin` header, the declared size and content type. Sessions go through Cloud Storage's JSON API, which answers CORS requests for that origin by itself, so the bucket needs no CORS configuration. The session URL works like a password for a week, so it is only handed to the logged-in operator who asked for it, and the import checks size and hash afterwards.
 - **Customer files**: the share page asks the API, which checks the share token and answers with a redirect to a V4 signed URL valid for 15 minutes, signed with the VM's service account through the IAM Credentials API.
 - The app talks to the bucket only through `GcsStorage` in `apps/server/src/storage/` (`@google-cloud/storage`). That and `infra/gcp/` are the only Google-specific code.
 
@@ -82,7 +82,7 @@ Postgres 18 in Docker on the VM, as in `compose.yml` (decision 1).
 
 | What                | How                                                                                 | Kept                 | Worst-case loss |
 | ------------------- | ----------------------------------------------------------------------------------- | -------------------- | --------------- |
-| Whole VM disk       | Snapshot schedule, daily at 03:00, stored in europe-west4                           | 14 days              | 24 hours        |
+| Whole VM disk       | Snapshot schedule, daily at 03:00 UTC, stored in europe-west4                       | 14 days              | 24 hours        |
 | Database            | `pg_dump` every 6 hours to `<project>-backup-db` (europe-west1)                     | 35 days              | 6 hours         |
 | Files               | Soft delete on the files bucket                                                     | 30 days after delete | none            |
 | Files, other region | Storage Transfer Service, nightly mirror to `<project>-backup-files` (europe-west1) | soft delete 30 days  | 24 hours        |
@@ -93,7 +93,7 @@ Postgres 18 in Docker on the VM, as in `compose.yml` (decision 1).
 
 ## 9. Monitoring and alerts
 
-- **Uptime checks** (Cloud Monitoring), every 5 minutes from three regions: `https://<staff domain>/health` (must answer 200 with `"status":"ok"`) and a test share page.
+- **Uptime checks** (Cloud Monitoring), every 5 minutes from three checker locations (Google's minimum): `https://<staff domain>/health` (must answer 200 with `"status":"ok"`) and a test share page.
 - **Log-based alerts** from the app's JSON logs: render failed, Odoo call failed, database backup failed. Each alerts when it repeats (for example 2 within 6 hours), so one retry that succeeds stays quiet.
 - **Ops Agent** on the VM for memory, disk and CPU metrics and for the container logs (Docker's JSON log files, parsed as JSON). An alert when the disk is over 85 % full.
 - All alerts go to one e-mail notification channel (the owner and the maintainer).
@@ -187,7 +187,7 @@ infra/gcp/
   main.tf              provider, project services
   network.tf           VPC, subnet, firewall, static IP
   vm.tf                VM, service account, snapshot schedule, boot units (cloud-init)
-  storage.tf           files bucket and the two backup buckets, lifecycle, soft delete, CORS, transfer job
+  storage.tf           files bucket and the two backup buckets, lifecycle, soft delete, transfer job
   secrets.tf           secret containers (no values)
   iam.tf               every binding from section 12
   monitoring.tf        uptime checks, log-based metrics, alert policies, notification channel
